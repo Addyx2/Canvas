@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-dm), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-display: var(--font-grotesk), var(--font-dm), ui-sans-serif, system-ui, sans-serif;
+
+  --color-ink: #0b0f14;
+  --color-brand-50: #f3f2ff;
+  --color-brand-100: #e7e5ff;
+  --color-brand-200: #d1cdff;
+  --color-brand-300: #b0a8ff;
+  --color-brand-400: #8b7dfc;
+  --color-brand-500: #6c5cf5;
+  --color-brand-600: #5a45e8;
+  --color-brand-700: #4b37c9;
+  --color-brand-800: #3e2fa3;
+  --color-brand-900: #352b81;
+  --color-brand-950: #201a4b;
+
+  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.05);
+  --shadow-pop: 0 12px 28px -10px rgb(15 23 42 / 0.18), 0 32px 64px -24px rgb(15 23 42 / 0.28);
+}
+
+@layer base {
+  body {
+    @apply bg-white font-sans text-slate-900 antialiased;
+  }
+  * {
+    @apply border-slate-200;
+  }
+  :focus-visible {
+    outline: 2px solid transparent;
+    @apply outline-2 outline-offset-2 outline-brand-500;
+  }
+}

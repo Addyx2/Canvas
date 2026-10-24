@@ -1,0 +1,128 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  MEMBER
+}
+
+enum InstallationStatus {
+  ACTIVE
+  PAUSED
+  UNINSTALLED
+}
+
+enum EventDirection {
+  INBOUND  // a platform sent it to a module
+  OUTBOUND // a module sent it to a platform
+}
+
+/// A company running Canvas modules, e.g. Aultrum itself or a reseller.
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  users         User[]
+  platforms     Platform[]
+  installations Installation[]
+  auditEvents   AuditEvent[]
+}
+
+model User {
+  id               String    @id @default(cuid())
+  organizationId   String
+  email            String    @unique
+  name             String
+  passwordHash     String
+  role             Role      @default(ADMIN)
+  sessionVersion   Int       @default(0)
+  failedLoginCount Int       @default(0)
+  lockedUntil      DateTime?
+  lastLoginAt      DateTime?
+  createdAt        DateTime  @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  auditEvents  AuditEvent[]
+}
+
+/// A product that streams Canvas modules into itself, e.g. Pleasant. It calls
+/// the Canvas API with its client ID and secret, and receives signed webhooks.
+model Platform {
+  id             String    @id @default(cuid())
+  organizationId String
+  name           String
+  clientId       String    @unique
+  /// SHA-256 of the client secret. The secret is shown once, when created or rotated.
+  secretHash     String
+  /// Signs webhooks to this platform. Shown once, with the client secret.
+  webhookSecret  String
+  webhookUrl     String?
+  /// Origins allowed to embed module screens (CSP frame-ancestors).
+  allowedOrigins String[]  @default([])
+  revokedAt      DateTime?
+  createdAt      DateTime  @default(now())
+
+  organization  Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  installations Installation[]
+}
+
+/// One module switched on for one tenant of a platform, e.g. Gateway for
+/// the agency "Brightwater Care" in Pleasant.
+model Installation {
+  id             String             @id @default(cuid())
+  organizationId String
+  platformId     String
+  moduleKey      String
+  tenantId       String
+  tenantName     String
+  status         InstallationStatus @default(ACTIVE)
+  settings       Json               @default("{}")
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  platform     Platform     @relation(fields: [platformId], references: [id], onDelete: Cascade)
+  events       Event[]
+
+  @@unique([platformId, moduleKey, tenantId])
+  @@index([organizationId, status])
+}
+
+model Event {
+  id             String         @id @default(cuid())
+  installationId String
+  direction      EventDirection
+  type           String
+  payload        Json           @default("{}")
+  /// OUTBOUND only: webhook delivery to the platform.
+  deliveryStatus String?
+  attempts       Int            @default(0)
+  lastError      String?
+  deliveredAt    DateTime?
+  createdAt      DateTime       @default(now())
+
+  installation Installation @relation(fields: [installationId], references: [id], onDelete: Cascade)
+
+  @@index([installationId, createdAt])
+}
+
+model AuditEvent {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String?
+  action         String
+  summary        String
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdAt])
+}
