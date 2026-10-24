@@ -4,16 +4,16 @@ import { Badge, Card, PageHeader } from "@/components/ui";
 import { requireUser } from "@/lib/auth";
 import { MODULES } from "@/lib/modules";
 
-export const metadata = { title: "Modules" };
+export const metadata = { title: "Elements" };
 
 export default async function ModulesPage() {
   await requireUser();
   return (
     <div className="space-y-6">
-      <PageHeader title="Modules" description="Each module runs once on Canvas and streams into any connected platform: its screens, its events and the actions it asks the platform to take." />
+      <PageHeader title="Elements" description="Ready-made care modules. Each runs once on Canvas and appears inside your connected systems: its screens, its events, and the actions it asks your system to take." />
       <div className="grid gap-4 md:grid-cols-2">
         {MODULES.map((m) => (
-          <Link key={m.key} href={`/modules/${m.key}`}>
+          <Link key={m.key} href={`/elements/${m.key}`}>
             <Card className="h-full p-6 transition hover:border-slate-300">
               <div className="flex items-center justify-between">
                 <h2 className="font-display text-xl font-semibold">{m.name}</h2>

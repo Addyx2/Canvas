@@ -6,7 +6,7 @@ import { prisma } from "@/lib/db";
 
 import { CreatePlatformForm, EditPlatformForm, RevokePlatformForm } from "./PlatformForms";
 
-export const metadata = { title: "Platforms" };
+export const metadata = { title: "Connected systems" };
 export const dynamic = "force-dynamic";
 
 export default async function PlatformsPage() {
@@ -21,19 +21,19 @@ export default async function PlatformsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Platforms"
-        description="Products that stream Canvas modules, such as Pleasant. Each one gets a client ID and secret for the API, and a signing secret for the webhooks it receives."
+        title="Connected systems"
+        description="Your own software, or an Aultrum platform such as Flowstate or Pleasant, that uses Persona and Elements. Each one gets a client ID and secret for the API, and a signing secret for the webhooks it receives."
       />
 
       {isAdmin ? (
         <Card className="p-5">
-          <h2 className="text-sm font-semibold">Connect a platform</h2>
+          <h2 className="text-sm font-semibold">Connect a system</h2>
           <div className="mt-4 max-w-xl"><CreatePlatformForm /></div>
         </Card>
       ) : null}
 
       {platforms.length === 0 ? (
-        <EmptyState title="No platforms connected" description="Connect Pleasant to stream Gateway and Peak into it." />
+        <EmptyState title="No systems connected" description="Connect your software to use Elements such as Gateway inside it." />
       ) : (
         <div className="space-y-4">
           {platforms.map((p) => (

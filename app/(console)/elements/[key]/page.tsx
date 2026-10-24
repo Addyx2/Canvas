@@ -9,7 +9,7 @@ import { findModule } from "@/lib/modules";
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ key: string }> }) {
-  return { title: findModule((await params).key)?.name ?? "Module" };
+  return { title: findModule((await params).key)?.name ?? "Element" };
 }
 
 export default async function ModulePage({ params }: { params: Promise<{ key: string }> }) {
@@ -24,7 +24,7 @@ export default async function ModulePage({ params }: { params: Promise<{ key: st
 
   return (
     <div className="space-y-6">
-      <Link href="/modules" className="text-sm text-slate-500 hover:text-slate-800">← Modules</Link>
+      <Link href="/elements" className="text-sm text-slate-500 hover:text-slate-800">← Elements</Link>
       <PageHeader
         title={mod.name}
         description={mod.description}
@@ -33,7 +33,7 @@ export default async function ModulePage({ params }: { params: Promise<{ key: st
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="p-5">
-          <h2 className="text-sm font-semibold">Sends to the platform</h2>
+          <h2 className="text-sm font-semibold">Sends to your system</h2>
           <ul className="mt-3 space-y-2.5">
             {mod.emits.map((e) => (
               <li key={e.type}><code className="text-[13px] text-brand-800">{e.type}</code><p className="text-sm text-slate-500">{e.description}</p></li>
@@ -41,7 +41,7 @@ export default async function ModulePage({ params }: { params: Promise<{ key: st
           </ul>
         </Card>
         <Card className="p-5">
-          <h2 className="text-sm font-semibold">Accepts from the platform</h2>
+          <h2 className="text-sm font-semibold">Accepts from your system</h2>
           <ul className="mt-3 space-y-2.5">
             {mod.consumes.map((e) => (
               <li key={e.type}><code className="text-[13px] text-blue-800">{e.type}</code><p className="text-sm text-slate-500">{e.description}</p></li>
@@ -51,8 +51,8 @@ export default async function ModulePage({ params }: { params: Promise<{ key: st
       </div>
 
       <Card className="p-5">
-        <h2 className="text-sm font-semibold">Actions it asks the platform to carry out</h2>
-        <p className="mt-1 text-sm text-slate-500">The platform runs these with its own tools, so its permissions, approvals and audit log still apply.</p>
+        <h2 className="text-sm font-semibold">Actions it asks your system to carry out</h2>
+        <p className="mt-1 text-sm text-slate-500">Your system runs these with its own tools, so its permissions, approvals and audit log still apply.</p>
         <ul className="mt-3 grid gap-3 sm:grid-cols-2">
           {mod.actions.map((a) => (
             <li key={a.name} className="rounded-lg border border-slate-200 p-3">
@@ -69,10 +69,10 @@ export default async function ModulePage({ params }: { params: Promise<{ key: st
       <Card className="overflow-hidden">
         <div className="px-5 py-4"><h2 className="text-sm font-semibold">Installations</h2></div>
         {installs.length === 0 ? (
-          <p className="border-t border-slate-100 px-5 py-4 text-sm text-slate-500">Not installed anywhere yet. Platforms install modules through the <Link className="text-brand-700" href="/developers#install">API</Link>.</p>
+          <p className="border-t border-slate-100 px-5 py-4 text-sm text-slate-500">Not installed anywhere yet. Your systems install Elements through the <Link className="text-brand-700" href="/developers#install">API</Link>.</p>
         ) : (
           <table className="w-full border-t border-slate-100">
-            <thead className="bg-slate-50"><tr><Th>Tenant</Th><Th>Platform</Th><Th>Status</Th></tr></thead>
+            <thead className="bg-slate-50"><tr><Th>Tenant</Th><Th>System</Th><Th>Status</Th></tr></thead>
             <tbody className="divide-y divide-slate-100">
               {installs.map((i) => (
                 <tr key={i.id}><Td>{i.tenantName}</Td><Td>{i.platform.name}</Td><Td><Badge tone={i.status === "ACTIVE" ? "green" : "amber"}>{i.status === "ACTIVE" ? "Active" : "Paused"}</Badge></Td></tr>

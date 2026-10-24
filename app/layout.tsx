@@ -8,7 +8,7 @@ const grotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-grotesk", 
 
 export const metadata: Metadata = {
   title: { default: "Aultrum Canvas", template: "%s · Aultrum Canvas" },
-  description: "Run Aultrum modules such as Gateway and Peak, and stream them into the platforms you already use.",
+  description: "The console for Persona and Elements: Aultrum's AI and care modules inside the systems you already use.",
   robots: { index: false },
 };
 

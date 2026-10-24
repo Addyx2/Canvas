@@ -15,7 +15,7 @@ export interface PlatformFormState {
 }
 
 const fields = z.object({
-  name: z.string().trim().min(2, "Name the platform").max(80),
+  name: z.string().trim().min(2, "Name the system").max(80),
   webhookUrl: z
     .string()
     .trim()
@@ -54,7 +54,7 @@ export async function createPlatformAction(_prev: PlatformFormState, formData: F
     },
   });
   await recordAudit(user, { action: "platform.created", summary: `Connected platform ${result.data.name}` });
-  revalidatePath("/platforms");
+  revalidatePath("/systems");
   return { credentials: { clientId, clientSecret, webhookSecret } };
 }
 
@@ -70,7 +70,7 @@ export async function updatePlatformAction(_prev: PlatformFormState, formData: F
   if ("error" in result) return { error: result.error };
   await prisma.platform.update({ where: { id: platform.id }, data: result.data });
   await recordAudit(user, { action: "platform.updated", summary: `Updated platform ${result.data.name}` });
-  revalidatePath("/platforms");
+  revalidatePath("/systems");
   return {};
 }
 
@@ -85,7 +85,7 @@ export async function rotateSecretsAction(_prev: PlatformFormState, formData: Fo
     data: { secretHash: hashSecret(clientSecret), webhookSecret },
   });
   await recordAudit(user, { action: "platform.rotated", summary: `Rotated secrets for ${platform.name}` });
-  revalidatePath("/platforms");
+  revalidatePath("/systems");
   return { credentials: { clientId: platform.clientId, clientSecret, webhookSecret } };
 }
 
@@ -95,5 +95,5 @@ export async function revokePlatformAction(formData: FormData): Promise<void> {
   if (!platform || platform.revokedAt) return;
   await prisma.platform.update({ where: { id: platform.id }, data: { revokedAt: new Date() } });
   await recordAudit(user, { action: "platform.revoked", summary: `Revoked platform ${platform.name}` });
-  revalidatePath("/platforms");
+  revalidatePath("/systems");
 }

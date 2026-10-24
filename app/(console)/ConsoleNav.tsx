@@ -8,8 +8,8 @@ import { cn } from "@/lib/utils";
 
 const NAV = [
   { href: "/dashboard", label: "Overview", icon: LayoutGrid },
-  { href: "/modules", label: "Modules", icon: Puzzle },
-  { href: "/platforms", label: "Platforms", icon: Plug },
+  { href: "/elements", label: "Elements", icon: Puzzle },
+  { href: "/systems", label: "Connected systems", icon: Plug },
   { href: "/installations", label: "Installations", icon: Blocks },
   { href: "/events", label: "Events", icon: Activity },
   { href: "/developers", label: "Developers", icon: Code2 },

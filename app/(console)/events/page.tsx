@@ -13,8 +13,8 @@ export const dynamic = "force-dynamic";
 
 const FILTERS = [
   { key: "all", label: "All" },
-  { key: "in", label: "From platforms" },
-  { key: "out", label: "To platforms" },
+  { key: "in", label: "From your systems" },
+  { key: "out", label: "To your systems" },
   { key: "failed", label: "Failed" },
 ] as const;
 
@@ -42,7 +42,7 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Events" description="Everything flowing between modules and platforms: events platforms send in, and webhooks modules send out, with delivery status." />
+      <PageHeader title="Events" description="Everything flowing between Elements and your systems: events your systems send in, and webhooks Elements send out, with delivery status." />
       <div className="flex flex-wrap gap-2">
         {FILTERS.map((f) => (
           <Link
@@ -55,7 +55,7 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
         ))}
       </div>
       {events.length === 0 ? (
-        <EmptyState title="No events" description="Events appear here as platforms and modules talk to each other." />
+        <EmptyState title="No events" description="Events appear here as your systems and Elements talk to each other." />
       ) : (
         <Card className="overflow-x-auto">
           <table className="w-full min-w-[760px]">

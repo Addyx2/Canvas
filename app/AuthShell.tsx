@@ -11,10 +11,10 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
         <div className="relative"><Wordmark dark /></div>
         <div className="relative max-w-md">
           <h1 className="font-display text-4xl font-bold leading-tight tracking-tight">
-            Modules that plug into <span className="text-brand-300">every platform</span> you run.
+            The console for <span className="text-brand-300">Persona</span> and Elements.
           </h1>
           <p className="mt-4 text-base leading-relaxed text-white/70">
-            Run Gateway and Peak once on Canvas, then stream them into Pleasant and the other products your teams already use.
+            Bring Aultrum&apos;s AI and care modules into the systems you already run, and build custom modules on the same foundations.
           </p>
           <ul className="mt-8 space-y-3">
             {MODULES.map((m) => (

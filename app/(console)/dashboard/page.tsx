@@ -29,20 +29,20 @@ export default async function DashboardPage() {
   const byModule = new Map(installations.map((g) => [g.moduleKey, g._count]));
 
   const steps = [
-    { done: platforms > 0, label: "Connect a platform", detail: "Register Pleasant (or another product) to get API credentials.", href: "/platforms" },
-    { done: active > 0, label: "Install a module", detail: "The platform installs Gateway or Peak for one of its tenants through the API.", href: "/developers#install" },
-    { done: events7d > 0, label: "Send your first event", detail: "Events flow both ways between the module and the platform.", href: "/developers#events" },
+    { done: platforms > 0, label: "Connect a system", detail: "Register your software to get API credentials.", href: "/systems" },
+    { done: active > 0, label: "Switch on an Element", detail: "Your system installs Gateway or Peak for one of its services through the API.", href: "/developers#install" },
+    { done: events7d > 0, label: "Send your first event", detail: "Events flow both ways between the Element and your system.", href: "/developers#events" },
   ];
 
   return (
     <div className="space-y-8">
-      <PageHeader title={`Welcome, ${user.name.split(" ")[0]}`} description="Modules running on Canvas, the platforms they stream into, and what's flowing between them." />
+      <PageHeader title={`Welcome, ${user.name.split(" ")[0]}`} description="Your Elements, the systems they appear in, and what's flowing between them." />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { label: "Modules", value: MODULES.length, hint: `${MODULES.filter((m) => m.status === "pilot").length} in pilot` },
-          { label: "Connected platforms", value: platforms, hint: "Products streaming modules" },
-          { label: "Active installations", value: active, hint: "Module × tenant" },
+          { label: "Elements", value: MODULES.length, hint: `${MODULES.filter((m) => m.status === "pilot").length} in pilot` },
+          { label: "Connected systems", value: platforms, hint: "Using Persona and Elements" },
+          { label: "Active installations", value: active, hint: "Element × service" },
           { label: "Events, last 7 days", value: events7d, hint: failed > 0 ? `${failed} failed deliveries` : "No failed deliveries" },
         ].map((s) => (
           <Card key={s.label} className="p-5">
@@ -71,10 +71,10 @@ export default async function DashboardPage() {
       ) : null}
 
       <section>
-        <h2 className="text-sm font-semibold">Modules</h2>
+        <h2 className="text-sm font-semibold">Elements</h2>
         <div className="mt-3 grid gap-4 md:grid-cols-2">
           {MODULES.map((m) => (
-            <Link key={m.key} href={`/modules/${m.key}`}>
+            <Link key={m.key} href={`/elements/${m.key}`}>
               <Card className="h-full p-5 transition hover:border-slate-300">
                 <div className="flex items-center justify-between">
                   <h3 className="font-display text-lg font-semibold">{m.name}</h3>

@@ -50,18 +50,18 @@ function Fields({ defaults }: { defaults?: { name: string; webhookUrl: string | 
   return (
     <>
       <div>
-        <label className={labelClass} htmlFor="name">Platform name</label>
-        <input id="name" name="name" required defaultValue={defaults?.name} placeholder="Pleasant" className={`mt-1 ${inputClass}`} />
+        <label className={labelClass} htmlFor="name">System name</label>
+        <input id="name" name="name" required defaultValue={defaults?.name} placeholder="Our care management system" className={`mt-1 ${inputClass}`} />
       </div>
       <div>
         <label className={labelClass} htmlFor="webhookUrl">Webhook URL</label>
-        <input id="webhookUrl" name="webhookUrl" defaultValue={defaults?.webhookUrl ?? ""} placeholder="https://pleasant.aultrum.co.uk/api/canvas/webhooks" className={`mt-1 ${inputClass}`} />
+        <input id="webhookUrl" name="webhookUrl" defaultValue={defaults?.webhookUrl ?? ""} placeholder="https://example.org/api/canvas/webhooks" className={`mt-1 ${inputClass}`} />
         <p className="mt-1 text-xs text-slate-500">Where modules send events. Leave blank until the platform is ready.</p>
       </div>
       <div>
-        <label className={labelClass} htmlFor="allowedOrigins">Origins allowed to show module screens</label>
+        <label className={labelClass} htmlFor="allowedOrigins">Sites allowed to show Element screens</label>
         <textarea id="allowedOrigins" name="allowedOrigins" rows={2} defaultValue={defaults?.allowedOrigins.join("\n")} placeholder="https://pleasant.aultrum.co.uk" className={`mt-1 ${inputClass}`} />
-        <p className="mt-1 text-xs text-slate-500">One per line. Module screens can only be embedded on these sites.</p>
+        <p className="mt-1 text-xs text-slate-500">One per line. Element screens can only be shown on these sites.</p>
       </div>
     </>
   );
@@ -74,7 +74,7 @@ export function CreatePlatformForm() {
     <form action={action} className="space-y-4">
       <Fields />
       {state.error ? <p role="alert" className="text-sm text-red-700">{state.error}</p> : null}
-      <button type="submit" disabled={pending} className={buttonClass}>{pending ? "Connecting…" : "Connect platform"}</button>
+      <button type="submit" disabled={pending} className={buttonClass}>{pending ? "Connecting…" : "Connect system"}</button>
     </form>
   );
 }
@@ -96,7 +96,7 @@ export function EditPlatformForm({ platform }: { platform: { id: string; name: s
         <form
           action={rotate}
           onSubmit={(e) => {
-            if (!window.confirm("Rotate secrets? The platform stops working until it uses the new ones.")) e.preventDefault();
+            if (!window.confirm("Rotate secrets? The system stops working until it uses the new ones.")) e.preventDefault();
           }}
         >
           <input type="hidden" name="id" value={platform.id} />

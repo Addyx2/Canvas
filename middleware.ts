@@ -4,7 +4,7 @@ import { SESSION_COOKIE } from "./lib/constants";
 import { frameAncestors, verifyEmbedToken } from "./lib/embed-token";
 import { authSecret } from "./lib/secret";
 
-const CONSOLE_PREFIXES = ["/dashboard", "/modules", "/platforms", "/installations", "/events", "/developers"];
+const CONSOLE_PREFIXES = ["/dashboard", "/elements", "/systems", "/installations", "/events", "/developers"];
 
 export async function middleware(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
@@ -36,8 +36,8 @@ export const config = {
   matcher: [
     "/embed/:path*",
     "/dashboard/:path*",
-    "/modules/:path*",
-    "/platforms/:path*",
+    "/elements/:path*",
+    "/systems/:path*",
     "/installations/:path*",
     "/events/:path*",
     "/developers/:path*",

@@ -14,7 +14,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   return (
     <AuthShell>
       <h2 className="font-display text-2xl font-bold tracking-tight text-ink">Sign in to Canvas</h2>
-      <p className="mt-1 text-sm text-slate-500">Manage modules, connected platforms and events.</p>
+      <p className="mt-1 text-sm text-slate-500">Manage Elements, connected systems and events.</p>
       <div className="mt-8"><LoginForm next={next} /></div>
       <div className="mt-8 space-y-2 text-center text-sm text-slate-500">
         {canSignUp ? (

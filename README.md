@@ -12,7 +12,7 @@ them into the platforms customers already use, starting with **Pleasant**.
 
 | Area | Path |
 |---|---|
-| Console: overview, modules, platforms, installations, events, developer guide | `app/(console)` |
+| Console: overview, Elements, connected systems, installations, events, developer guide | `app/(console)` |
 | Platform API: modules, installations, events, embed tokens | `app/api/v1` |
 | Module screens embedded in platforms | `app/embed/[module]` |
 | Module manifests | `lib/modules.ts` |

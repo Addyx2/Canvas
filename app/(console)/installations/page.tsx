@@ -30,17 +30,17 @@ export default async function InstallationsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Installations" description="A module switched on for one tenant of a platform, such as Gateway for one agency in Pleasant. Platforms install and uninstall through the API." />
+      <PageHeader title="Installations" description="An Element switched on for one service in one of your systems, such as Gateway for one branch. Your systems install and uninstall through the API." />
       {installs.length === 0 ? (
         <EmptyState
           title="No installations yet"
-          description="When a connected platform installs a module for one of its tenants, it appears here."
-          action={<Link href="/developers#install" className={linkButton}>How platforms install modules →</Link>}
+          description="When a connected system switches on an Element for one of its services, it appears here."
+          action={<Link href="/developers#install" className={linkButton}>How to switch on an Element →</Link>}
         />
       ) : (
         <Card className="overflow-x-auto">
           <table className="w-full min-w-[760px]">
-            <thead className="bg-slate-50"><tr><Th>Module</Th><Th>Tenant</Th><Th>Platform</Th><Th>Status</Th><Th>Events</Th><Th /></tr></thead>
+            <thead className="bg-slate-50"><tr><Th>Element</Th><Th>Service</Th><Th>System</Th><Th>Status</Th><Th>Events</Th><Th /></tr></thead>
             <tbody className="divide-y divide-slate-100">
               {installs.map((i) => {
                 const status = STATUS[i.status];
@@ -61,7 +61,7 @@ export default async function InstallationsPage() {
                           {i.status === "ACTIVE" ? (
                             <form action={sendTestEventAction}>
                               <input type="hidden" name="id" value={i.id} />
-                              <button type="submit" className={linkButton} title={i.platform.webhookUrl ? undefined : "The platform has no webhook URL yet"}>
+                              <button type="submit" className={linkButton} title={i.platform.webhookUrl ? undefined : "The system has no webhook URL yet"}>
                                 Send test event
                               </button>
                             </form>
