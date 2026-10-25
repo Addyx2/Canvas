@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { syncEnvClients } from "@/lib/aultrum-id/clients";
 import { idUrl } from "@/lib/aultrum-id/hosts";
 import { checkAuthorize, issueCode } from "@/lib/aultrum-id/oidc";
 import { currentIdentity } from "@/lib/aultrum-id/session";
@@ -19,6 +20,7 @@ function problem(message: string) {
 // so there's no consent screen: a signed-in person goes straight back.
 export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
+  await syncEnvClients();
   const client = await prisma.oAuthClient.findUnique({ where: { clientId: params.get("client_id") ?? "" } });
   const check = checkAuthorize(params, client);
   if (!check.ok) return "show" in check ? problem(check.show) : NextResponse.redirect(check.redirect);

@@ -80,5 +80,9 @@ npm run dev -- -p 3200
    `openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048`, pasted
    whole). Keep the key safe: anyone with it can sign people in to every
    Aultrum product.
-6. Register each product with `scripts/aultrum-client.ts` (run it with the
-   production `DATABASE_URL`).
+6. Register each product with Aultrum ID by adding one variable per product,
+   `AULTRUM_ID_CLIENT_<PRODUCT>="<product address>|<secret>"`, e.g.
+   `AULTRUM_ID_CLIENT_PLEASANT="https://pleasant.aultrum.co.uk|<secret>"`
+   (secret from `openssl rand -base64 32`). Give the product the same secret
+   as `AULTRUM_ID_CLIENT_SECRET`, with `AULTRUM_ID_CLIENT_ID=aid_pleasant`.
+   (`scripts/aultrum-client.ts` does the same against a database directly.)

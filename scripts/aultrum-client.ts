@@ -11,6 +11,7 @@ import { randomBytes } from "node:crypto";
 
 import { PrismaClient } from "@prisma/client";
 
+import { clientRecord } from "../lib/aultrum-id/clients";
 import { hashSecret } from "../lib/credentials";
 
 const prisma = new PrismaClient();
@@ -26,13 +27,7 @@ async function main() {
   const app = arg("app")?.replace(/\/+$/, "");
   if (!product || !name || !app) throw new Error("Usage: --product <key> --name <name> --app <https://product.example>");
   const clientId = `aid_${product}`;
-  const data = {
-    name,
-    product,
-    redirectUris: [`${app}/api/auth/aultrum/callback`],
-    postLogoutRedirectUris: [`${app}/login`],
-    launchUrl: `${app}/api/auth/aultrum/start`,
-  };
+  const data = clientRecord(product, name, app);
   const existing = await prisma.oAuthClient.findUnique({ where: { clientId } });
   if (existing && !process.argv.includes("--rotate")) {
     await prisma.oAuthClient.update({ where: { clientId }, data });

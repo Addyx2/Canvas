@@ -4,6 +4,7 @@ import { test } from "node:test";
 
 import type { OAuthClient } from "@prisma/client";
 
+import { clientRecord, envClients } from "./clients";
 import { hostKind } from "./hosts";
 import { checkAuthorize, pkceMatches } from "./oidc";
 import { createIdentitySession, readIdentitySession } from "./session";
@@ -90,4 +91,20 @@ test("Workspace's pending sign-in cookie is tamper-proof", () => {
   assert.equal(readPendingSignIn(cookie, 1_000 + 11 * 60_000), null);
   const [data, sig] = cookie.split(".");
   assert.equal(readPendingSignIn(`${data}x.${sig}`, 2_000), null);
+});
+
+test("envClients reads AULTRUM_ID_CLIENT_<PRODUCT> as address|secret and skips bad entries", () => {
+  const secret = "s".repeat(32);
+  assert.deepEqual(
+    envClients({
+      AULTRUM_ID_CLIENT_PLEASANT: `https://pleasant.aultrum.co.uk/|${secret}`,
+      AULTRUM_ID_CLIENT_SHORT: "https://short.example|abc",
+      AULTRUM_ID_CLIENT_PLAIN: `http://evil.example|${secret}`,
+      AULTRUM_ID_CLIENT_WORKSPACE: `https://ws.example|${secret}`,
+      AULTRUM_ID_CLIENT_PATH: `https://x.example/app|${secret}`,
+      AULTRUM_ID_URL: "https://id.aultrum.co.uk",
+    }),
+    [{ product: "pleasant", app: "https://pleasant.aultrum.co.uk", secret }],
+  );
+  assert.deepEqual(clientRecord("pleasant", "Pleasant", "https://p.example/").redirectUris, ["https://p.example/api/auth/aultrum/callback"]);
 });

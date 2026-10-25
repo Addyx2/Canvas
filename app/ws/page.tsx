@@ -1,5 +1,6 @@
 import { ArrowUpRight } from "lucide-react";
 
+import { syncEnvClients } from "@/lib/aultrum-id/clients";
 import { activityFor } from "@/lib/aultrum-id/feed";
 import { requireWorkspaceIdentity } from "@/lib/aultrum-id/session";
 import { PRODUCTS } from "@/lib/aultrum-id/workspace";
@@ -19,6 +20,7 @@ function launch(url: string, orgId?: string) {
 
 export default async function WorkspaceHome() {
   const identity = await requireWorkspaceIdentity();
+  await syncEnvClients();
   const [{ memberships, items }, clients] = await Promise.all([
     activityFor(identity.id, 8),
     prisma.oAuthClient.findMany({ where: { revokedAt: null, product: { not: "workspace" } } }),

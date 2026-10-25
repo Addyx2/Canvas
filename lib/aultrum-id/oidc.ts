@@ -5,6 +5,7 @@ import type { OAuthClient } from "@prisma/client";
 import { hashSecret, parseBasicAuth, secretMatches } from "@/lib/credentials";
 import { prisma } from "@/lib/db";
 
+import { syncEnvClients } from "./clients";
 import { idUrl } from "./hosts";
 
 export const CODE_TTL_MS = 60_000;
@@ -99,6 +100,7 @@ export async function authenticateClient(request: Request, form: URLSearchParams
   const clientId = basic?.clientId ?? form.get("client_id") ?? "";
   const secret = basic?.secret ?? form.get("client_secret") ?? "";
   if (!clientId || !secret) return null;
+  await syncEnvClients();
   const client = await prisma.oAuthClient.findUnique({ where: { clientId: decodeURIComponent(clientId) } });
   if (!client || client.revokedAt || !secretMatches(decodeURIComponent(secret), client.secretHash)) return null;
   return client;
