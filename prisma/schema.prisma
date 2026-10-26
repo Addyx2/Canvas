@@ -66,6 +66,10 @@ model Platform {
   webhookUrl     String?
   /// Origins allowed to embed module screens (CSP frame-ancestors).
   allowedOrigins String[]  @default([])
+  /// Set for systems that sign their requests with their own key instead of a
+  /// secret (e.g. Pleasant). Canvas checks requests against this public key set
+  /// and signs webhooks to them with its own key.
+  jwksUri        String?
   revokedAt      DateTime?
   createdAt      DateTime  @default(now())
 
