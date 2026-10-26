@@ -34,7 +34,7 @@ export async function POST(request: Request) {
       name: parsed.data.user.name,
       origins: platform.allowedOrigins,
     },
-    authSecret(),
+    await authSecret(),
   );
   return Response.json(
     { url: appUrl(`${mod.embedPath}?token=${encodeURIComponent(token)}`), expiresIn: EMBED_TOKEN_TTL_SECONDS },

@@ -35,8 +35,9 @@ npm run dev -- -p 3200
 ## Deploy (Vercel)
 
 1. Import this repository as a new Vercel project.
-2. Set `DATABASE_URL` (its own Postgres database), `AUTH_SECRET`
-   (`openssl rand -hex 32`) and `APP_URL=https://canvas.aultrum.co.uk`.
+2. Storage → create a Postgres database for it. That sets `DATABASE_URL`, the
+   only setting it needs: the signing secret is made on first start and kept
+   in the database, and the address defaults to `https://canvas.aultrum.co.uk`.
 3. Add the domain `canvas.aultrum.co.uk` to the project, and the CNAME record
    Vercel shows to your DNS.
 4. Open the site and create the first organisation; sign-up then closes

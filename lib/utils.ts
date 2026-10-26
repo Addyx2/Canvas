@@ -12,6 +12,7 @@ export function safeNextPath(next: string | null | undefined): string | null {
 }
 
 export function appUrl(path = ""): string {
-  const base = (process.env.APP_URL ?? "http://localhost:3200").replace(/\/$/, "");
+  const fallback = process.env.NODE_ENV === "production" ? "https://canvas.aultrum.co.uk" : "http://localhost:3200";
+  const base = (process.env.APP_URL ?? fallback).replace(/\/$/, "");
   return `${base}${path}`;
 }

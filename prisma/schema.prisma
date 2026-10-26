@@ -127,3 +127,12 @@ model AuditEvent {
   @@index([organizationId, createdAt])
 }
 
+
+/// Secrets Canvas makes for itself on first start (the signing secret for
+/// sessions and embed tokens), so deploying needs no keys in settings.
+/// AUTH_SECRET, when set, takes precedence.
+model ServiceKey {
+  name      String   @id
+  value     String
+  createdAt DateTime @default(now())
+}

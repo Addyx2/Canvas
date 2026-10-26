@@ -37,7 +37,7 @@ export async function previewInstallationAction(formData: FormData): Promise<voi
   if (!installation || !mod) return;
   const token = await signEmbedToken(
     { ins: installation.id, mod: mod.key, sub: user.id, name: user.name, origins: [new URL(appUrl()).origin] },
-    authSecret(),
+    await authSecret(),
   );
   redirect(`${mod.embedPath}?token=${encodeURIComponent(token)}`);
 }

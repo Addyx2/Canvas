@@ -31,7 +31,7 @@ export default async function EmbedPage({
   searchParams: Promise<{ token?: string }>;
 }) {
   const [{ module: moduleKey }, { token }] = await Promise.all([params, searchParams]);
-  const claims = await verifyEmbedToken(token, authSecret());
+  const claims = await verifyEmbedToken(token, await authSecret());
   if (!claims || claims.mod !== moduleKey) return <Problem message="The link has expired. Reload the page in your app to get a fresh one." />;
 
   const installation = await prisma.installation.findUnique({

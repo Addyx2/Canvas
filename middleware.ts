@@ -11,7 +11,7 @@ export async function middleware(request: NextRequest) {
 
   if (pathname.startsWith("/embed/")) {
     // Only the platform the token was issued for may frame this screen.
-    const claims = await verifyEmbedToken(searchParams.get("token"), authSecret());
+    const claims = await verifyEmbedToken(searchParams.get("token"), await authSecret());
     const response = NextResponse.next();
     response.headers.set(
       "Content-Security-Policy",
@@ -33,6 +33,8 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
+  // Node.js runtime: the embed check reads the signing secret from the database.
+  runtime: "nodejs",
   matcher: [
     "/embed/:path*",
     "/dashboard/:path*",
