@@ -1,6 +1,7 @@
 import type { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
+import { processInbound } from "@/lib/inbound";
 import { acceptsEvent, findModule } from "@/lib/modules";
 import { apiError, authenticatePlatform, readJson } from "@/lib/platform-auth";
 import { inboundEventSchema } from "@/lib/validation";
@@ -35,5 +36,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       payload: parsed.data.data as Prisma.InputJsonValue,
     },
   });
-  return Response.json({ id: event.id, received: true }, { status: 202 });
+  // The event is stored first, so it is in the log even if acting on it fails.
+  let result: unknown = null;
+  try {
+    result = await processInbound(installation, parsed.data.type, parsed.data.data);
+  } catch (error) {
+    console.error("inbound event not processed", event.id, error);
+    return apiError(500, "The event was received but couldn't be processed", { id: event.id });
+  }
+  return Response.json({ id: event.id, received: true, result }, { status: 202 });
 }

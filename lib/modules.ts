@@ -29,39 +29,37 @@ export const MODULES: ModuleManifest[] = [
     name: "Gateway",
     tagline: "One conversation layer for every channel, agent and person.",
     description:
-      "Gateway answers calls and messages on phone, SMS, WhatsApp and web chat, works out who is speaking, and routes each conversation to the right AI agent or person. Agents such as Persona Assist join as participants, and staff can watch, take over and hand back.",
+      "Gateway answers calls, texts and web chat, recognises who is speaking, and handles what it can: reporting an absence, requesting cover or answering questions. Emergencies and anything it can't handle go straight to a person, and staff can take over and hand back at any time.",
     status: "pilot",
     embedPath: "/embed/gateway",
     emits: [
-      { type: "gateway.call.completed", description: "A conversation ended, with its summary and transcript reference." },
+      { type: "gateway.call.completed", description: "A conversation ended, with its summary." },
       { type: "gateway.absence.reported", description: "A carer reported they can't work a shift." },
       { type: "gateway.cover.requested", description: "A client asked for staff." },
       { type: "gateway.handover.requested", description: "A conversation needs a person now." },
     ],
     consumes: [
-      { type: "platform.shift.assigned", description: "A shift was filled, so Gateway can tell the people waiting." },
-      { type: "platform.person.updated", description: "Contact details changed, so Gateway recognises callers." },
+      { type: "platform.person.updated", description: "A person's name or phone changed, so Gateway recognises them when they call." },
+      { type: "platform.person.removed", description: "A person left, so Gateway stops recognising them." },
     ],
-    actions: [
-      { name: "find_person", description: "Look up a caller by phone number.", changesData: false },
-      { name: "mark_shift_uncovered", description: "Mark a shift as needing a carer.", changesData: true },
-      { name: "offer_shift", description: "Offer an open shift to suitable carers.", changesData: true },
-    ],
+    actions: [],
   },
   {
     key: "peak",
     name: "Peak",
     tagline: "Recognition that pays: points for shifts, punctuality and praise.",
     description:
-      "Peak turns attendance and praise into points, streaks and rewards for carers, and builds the reliability record that feeds Shift Readiness.",
-    status: "planned",
+      "Peak turns completed shifts, on-time clock-ins and praise into points, streaks and rewards. Carers cash points out through payroll or spend them on perks, and every point is in a ledger.",
+    status: "pilot",
     embedPath: "/embed/peak",
-    emits: [{ type: "peak.reward.redeemed", description: "A carer redeemed a reward." }],
+    emits: [{ type: "peak.reward.redeemed", description: "A manager approved a reward; cash-outs carry the amount to pay through payroll." }],
     consumes: [
-      { type: "platform.clock.in", description: "A carer clocked in, on time or late." },
-      { type: "platform.praise.received", description: "A client praised a carer." },
+      { type: "platform.shift.completed", description: "A carer completed a shift." },
+      { type: "platform.clock.in", description: "A carer clocked in, with how many minutes late." },
+      { type: "platform.praise.received", description: "A client or manager praised a carer." },
+      { type: "platform.person.updated", description: "A carer's name changed." },
     ],
-    actions: [{ name: "list_workers", description: "Read the carers to score.", changesData: false }],
+    actions: [],
   },
 ];
 

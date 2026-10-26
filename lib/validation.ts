@@ -22,7 +22,13 @@ export const installSchema = z.object({
 
 export const embedTokenSchema = z.object({
   installationId: z.string().min(1),
-  user: z.object({ id: z.string().min(1).max(200), name: z.string().min(1).max(200) }),
+  user: z.object({
+    id: z.string().min(1).max(200),
+    name: z.string().min(1).max(200),
+    /** "member" shows only the person's own view, e.g. a carer's Peak points. */
+    role: z.enum(["manager", "member"]).default("manager"),
+    personId: z.string().min(1).max(200).optional(),
+  }),
 });
 
 export const inboundEventSchema = z.object({

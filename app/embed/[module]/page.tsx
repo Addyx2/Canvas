@@ -1,8 +1,8 @@
-import { formatDistanceToNowStrict } from "date-fns";
-import { MessageSquare, PhoneCall, Sparkles, Trophy } from "lucide-react";
+import { PhoneCall, Trophy } from "lucide-react";
 
 import { CanvasMark } from "@/components/Logo";
-import { Badge } from "@/components/ui";
+import { GatewayInbox } from "@/components/embed/GatewayInbox";
+import { PeakScreen } from "@/components/embed/PeakScreen";
 import { prisma } from "@/lib/db";
 import { verifyEmbedToken } from "@/lib/embed-token";
 import { findModule } from "@/lib/modules";
@@ -44,15 +44,9 @@ export default async function EmbedPage({
   }
   if (installation.status !== "ACTIVE") return <Problem message="This module is paused. Contact your Canvas admin." />;
 
-  const events = await prisma.event.findMany({
-    where: { installationId: installation.id },
-    orderBy: { createdAt: "desc" },
-    take: 12,
-  });
-
   return (
-    <main className="min-h-screen bg-white p-5 sm:p-6">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-4">
+    <main className="min-h-screen bg-slate-50 p-4 sm:p-5">
+      <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-ink text-brand-300">
             {mod.key === "gateway" ? <PhoneCall className="h-4 w-4" /> : <Trophy className="h-4 w-4" />}
@@ -62,51 +56,9 @@ export default async function EmbedPage({
             <p className="text-xs text-slate-500">{installation.tenantName} · in {installation.platform.name}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 text-xs text-slate-500">
-          <Badge tone={mod.status === "pilot" ? "brand" : "slate"}>{mod.status === "pilot" ? "Pilot" : "Coming soon"}</Badge>
-          <span>Signed in as {claims.name}</span>
-        </div>
+        <span className="text-xs text-slate-500">Signed in as {claims.name}</span>
       </header>
-
-      <div className="mt-5 grid gap-5 lg:grid-cols-[1.4fr_1fr]">
-        <section className="rounded-xl border border-slate-200">
-          <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3">
-            {mod.key === "gateway" ? <MessageSquare className="h-4 w-4 text-brand-600" /> : <Sparkles className="h-4 w-4 text-brand-600" />}
-            <h2 className="text-sm font-semibold">{mod.key === "gateway" ? "Conversations" : "Leaderboard"}</h2>
-          </div>
-          <div className="p-8 text-center">
-            <p className="text-sm font-semibold text-slate-700">
-              {mod.key === "gateway" ? "No conversations yet" : "Peak is coming soon"}
-            </p>
-            <p className="mx-auto mt-1 max-w-sm text-sm text-slate-500">
-              {mod.key === "gateway"
-                ? `When Gateway answers calls and messages for ${installation.tenantName}, they appear here. You'll be able to watch, take over and hand back.`
-                : `Points, streaks and rewards for ${installation.tenantName}'s carers will appear here, built from clock-ins and praise.`}
-            </p>
-          </div>
-        </section>
-
-        <section className="rounded-xl border border-slate-200">
-          <div className="border-b border-slate-100 px-4 py-3"><h2 className="text-sm font-semibold">Activity</h2></div>
-          {events.length === 0 ? (
-            <p className="px-4 py-6 text-sm text-slate-500">Nothing yet. Events between {installation.platform.name} and {mod.name} show here.</p>
-          ) : (
-            <ul className="divide-y divide-slate-100">
-              {events.map((e) => (
-                <li key={e.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
-                  <span className="flex min-w-0 items-center gap-2">
-                    <Badge tone={e.direction === "INBOUND" ? "blue" : "brand"}>{e.direction === "INBOUND" ? "In" : "Out"}</Badge>
-                    <code className="truncate text-[12px] text-slate-700">{e.type}</code>
-                  </span>
-                  <span className="shrink-0 text-xs text-slate-400">{formatDistanceToNowStrict(e.createdAt, { addSuffix: true })}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      </div>
-
-      <p className="mt-6 flex items-center gap-2 text-xs text-slate-400"><CanvasMark className="h-5 w-5 rounded p-[4px]" /> Streamed from Aultrum Canvas</p>
+      {mod.key === "gateway" ? <GatewayInbox token={token!} /> : <PeakScreen token={token!} />}
     </main>
   );
 }
