@@ -23,7 +23,7 @@ const STATUS: Record<Status, { label: string; className: string }> = {
   WITH_AI: { label: "Gateway answering", className: "bg-emerald-50 text-emerald-800" },
   CLOSED: { label: "Closed", className: "bg-slate-100 text-slate-600" },
 };
-const INTENT: Record<string, string> = { ABSENCE: "Absence", COVER_REQUEST: "Cover request", EMERGENCY: "Possible emergency", ENQUIRY: "Enquiry", OTHER: "Other" };
+const INTENT: Record<string, string> = { ENQUIRY: "Enquiry", MESSAGE: "Message", EMERGENCY: "Possible emergency", OTHER: "Other" };
 const ChannelIcon = ({ channel }: { channel: Channel }) =>
   channel === "VOICE" ? <Phone className="h-3.5 w-3.5" /> : channel === "SMS" ? <MessageSquare className="h-3.5 w-3.5" /> : <Globe className="h-3.5 w-3.5" />;
 const btn = "inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold transition disabled:opacity-50";

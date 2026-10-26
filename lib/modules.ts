@@ -29,17 +29,17 @@ export const MODULES: ModuleManifest[] = [
     name: "Gateway",
     tagline: "One conversation layer for every channel, agent and person.",
     description:
-      "Gateway answers calls, texts and web chat, recognises who is speaking, and handles what it can: reporting an absence, requesting cover or answering questions. Emergencies and anything it can't handle go straight to a person, and staff can take over and hand back at any time.",
+      "Gateway is an AI receptionist for enquiries. It answers calls, texts and web chat, answers questions from your own information, takes down new enquiries and messages, and passes them to your team. It makes no arrangements itself. Anyone who may be in danger is told to call 999 and a person is alerted, and staff can take over at any time.",
     status: "pilot",
     embedPath: "/embed/gateway",
     emits: [
       { type: "gateway.call.completed", description: "A conversation ended, with its summary." },
-      { type: "gateway.absence.reported", description: "A carer reported they can't work a shift." },
-      { type: "gateway.cover.requested", description: "A client asked for staff." },
+      { type: "gateway.enquiry.received", description: "A new enquiry, with who it's from, how to reach them and what they need." },
+      { type: "gateway.message.left", description: "A message for the team." },
       { type: "gateway.handover.requested", description: "A conversation needs a person now." },
     ],
     consumes: [
-      { type: "platform.person.updated", description: "A person's name or phone changed, so Gateway recognises them when they call." },
+      { type: "platform.person.updated", description: "A known contact's name or phone changed, so Gateway greets them by name." },
       { type: "platform.person.removed", description: "A person left, so Gateway stops recognising them." },
     ],
     actions: [],

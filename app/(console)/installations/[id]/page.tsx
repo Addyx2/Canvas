@@ -59,8 +59,8 @@ function GatewaySettings({ installation, isAdmin }: { installation: { id: string
         </div>
         <p className="text-sm text-slate-600">
           {aiAvailable()
-            ? "Gateway's agent answers, records absences and cover requests, and hands anything else to your team. Emergencies always go straight to a person."
-            : "This deployment has no AI key, so Gateway uses simple rules: it acknowledges each message, sends absences and cover requests to your system, and hands everything to your team. Emergencies always go straight to a person."}
+            ? "Gateway's agent answers questions from what you write below, takes down enquiries and messages, and passes them to your team. It makes no arrangements itself. Anyone who may be in danger is told to call 999 and a person is alerted."
+            : "This deployment has no AI key, so Gateway acknowledges each message and passes it to your team. Anyone who may be in danger is told to call 999 and a person is alerted."}
         </p>
       </Card>
       <Card className="p-5">

@@ -72,7 +72,7 @@ if (!fresh || !timingSafeEqual(Buffer.from(v1), Buffer.from(expected))) return 4
       </Section>
 
       <Section id="actions" step="Step 4" title="Let Elements act through your tools">
-        <p>Modules never write to your database. When Gateway needs to, say, mark a shift uncovered, it asks your platform to run that action through your own tools, so your permissions, approvals and audit log apply. Expose those tools to Canvas over MCP or an authenticated endpoint. Each module page lists the actions it needs and whether they change data.</p>
+        <p>Modules never write to your database. They send events, such as a new enquiry from Gateway or a reward to pay from Peak, and your platform decides what to do with them, so your permissions, approvals and audit log apply. Expose those tools to Canvas over MCP or an authenticated endpoint. Each module page lists the actions it needs and whether they change data.</p>
       </Section>
     </div>
   );

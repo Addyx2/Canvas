@@ -64,7 +64,7 @@ export function ChatWidget({ installationId, serviceName }: { installationId: st
     <div className="flex h-dvh flex-col bg-white">
       <header className="border-b border-slate-200 px-4 py-3">
         <p className="text-sm font-semibold text-slate-900">{serviceName}</p>
-        <p className="text-xs text-slate-500">Ask a question, report an absence or request staff. A person is always available.</p>
+        <p className="text-xs text-slate-500">Ask us a question or leave a message. A person is always available.</p>
       </header>
       <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4" aria-live="polite">
         {messages.length === 0 ? <p className="text-sm text-slate-500">Hello! How can we help today?</p> : null}

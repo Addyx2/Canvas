@@ -101,26 +101,30 @@ export async function closeConversation(c: GatewayConversation, summary: string 
 function toolRunner(c: GatewayConversation, state: { close?: string }): ToolRunner {
   return async (name, input) => {
     switch (name) {
-      case "record_absence": {
-        const i = input as { shift: string; reason: string };
-        await prisma.gatewayConversation.update({ where: { id: c.id }, data: { intent: "ABSENCE", summary: `Absence: ${i.shift}` } });
-        await emitEvent(c.installationId, "gateway.absence.reported", { ...who(c), shift: i.shift, reason: i.reason });
-        return "Recorded and sent to the rota team. They will confirm with the carer.";
-      }
-      case "request_cover": {
-        const i = input as Record<string, string>;
-        await prisma.gatewayConversation.update({ where: { id: c.id }, data: { intent: "COVER_REQUEST", summary: `Cover: ${i.date} ${i.start_time}–${i.end_time}, ${i.role}` } });
-        await emitEvent(c.installationId, "gateway.cover.requested", {
+      case "take_enquiry": {
+        const i = input as { name: string; contact: string; organisation: string; topic: string; details: string };
+        await prisma.gatewayConversation.update({ where: { id: c.id }, data: { intent: "ENQUIRY", contactName: c.contactName ?? i.name, summary: `Enquiry: ${i.topic}` } });
+        await emitEvent(c.installationId, "gateway.enquiry.received", {
           ...who(c),
-          organisation: i.organisation,
-          date: i.date,
-          startTime: i.start_time,
-          endTime: i.end_time,
-          role: i.role,
-          location: i.location,
+          name: i.name,
+          reachOn: i.contact || (c.channel === "WEBCHAT" ? null : c.contact),
+          organisation: i.organisation || null,
+          topic: i.topic,
           details: i.details,
         });
-        return "Sent to the rota team. They will confirm who is coming.";
+        return "Sent to the team. They will be in touch.";
+      }
+      case "take_message": {
+        const i = input as { name: string; contact: string; for_whom: string; message: string };
+        await prisma.gatewayConversation.update({ where: { id: c.id }, data: { intent: "MESSAGE", contactName: c.contactName ?? i.name, summary: `Message${i.for_whom ? ` for ${i.for_whom}` : ""}` } });
+        await emitEvent(c.installationId, "gateway.message.left", {
+          ...who(c),
+          name: i.name,
+          reachOn: i.contact || (c.channel === "WEBCHAT" ? null : c.contact),
+          forWhom: i.for_whom || null,
+          message: i.message,
+        });
+        return "Passed to the team.";
       }
       case "hand_over": {
         const i = input as { reason: string; urgent: boolean };
@@ -136,24 +140,19 @@ function toolRunner(c: GatewayConversation, state: { close?: string }): ToolRunn
   };
 }
 
-/** Without an AI key, Gateway still takes messages and routes them, using simple rules. */
+/** Without an AI key, Gateway still takes every message and passes it to the team. */
 async function ruleTurn(c: GatewayConversation, text: string, serviceName: string): Promise<string> {
   const name = c.contactName?.split(" ")[0];
-  const hi = name ? `Thanks ${name}. ` : "Thanks for your message. ";
-  if (/\b(sick|ill|unwell|can'?t (make|do|work|come)|cannot (make|do|work|come)|won'?t (make|be able)|not (able|coming)|off today|covid|family emergency)\b/i.test(text)) {
-    await prisma.gatewayConversation.update({ where: { id: c.id }, data: { intent: "ABSENCE", summary: "Absence reported" } });
-    await emitEvent(c.installationId, "gateway.absence.reported", { ...who(c), shift: "Not stated", reason: text.slice(0, 300) });
-    await handOver(c, "Confirm the absence with the carer", false);
-    return `${hi}I've passed this to the ${serviceName} rota team. They'll confirm with you shortly.`;
-  }
-  if (/\b(need|needs|request(ing)?|book(ing)?|short)\b.*\b(cover|carer|carers|staff|nurse|hca|shift)\b/i.test(text)) {
-    await prisma.gatewayConversation.update({ where: { id: c.id }, data: { intent: "COVER_REQUEST", summary: "Cover requested" } });
-    await emitEvent(c.installationId, "gateway.cover.requested", { ...who(c), details: text.slice(0, 600) });
-    await handOver(c, "Confirm the cover request", false);
-    return `${hi}I've sent your request to the ${serviceName} rota team. They'll confirm who is coming shortly.`;
-  }
+  await prisma.gatewayConversation.update({ where: { id: c.id }, data: { intent: "MESSAGE", summary: "Message" } });
+  await emitEvent(c.installationId, "gateway.message.left", {
+    ...who(c),
+    name: c.contactName,
+    reachOn: c.channel === "WEBCHAT" ? null : c.contact,
+    forWhom: null,
+    message: text.slice(0, 800),
+  });
   await handOver(c, "New message", false);
-  return `${hi}A member of the ${serviceName} team will reply shortly.`;
+  return `${name ? `Thanks ${name}. ` : "Thanks for your message. "}I've passed it to the ${serviceName} team and someone will reply shortly.`;
 }
 
 /** A message arrives from a person on any channel. */

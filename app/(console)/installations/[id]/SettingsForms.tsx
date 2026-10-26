@@ -31,7 +31,7 @@ export function GatewaySettingsForm(props: {
       </div>
       <label className={labelClass}>What Gateway can tell people
         <textarea name="about" defaultValue={props.about} rows={6} maxLength={4000} className={`${inputClass} mt-1`}
-          placeholder={"Office hours: Mon–Fri 8am–6pm; on-call out of hours.\nAreas: Bristol and South Gloucestershire.\nServices: carers, senior carers and nurses for care homes.\nJobs: apply at example.co.uk/jobs"} />
+          placeholder={"Office hours: Mon–Fri 8am–6pm.\nAreas: Bristol and South Gloucestershire.\nWhat we do: staff for care homes and home care providers.\nJobs: apply at example.co.uk/jobs"} />
         <span className="mt-1 block text-xs font-normal text-slate-500">Gateway answers questions only from this. Anything else goes to your team.</span>
       </label>
       <label className="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" name="webchat" defaultChecked={props.webchat} className="h-4 w-4" />Web chat on your website</label>
