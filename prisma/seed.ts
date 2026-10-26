@@ -13,19 +13,11 @@ export const DEMO = {
   clientId: "cv_live_pleasant_demo",
   clientSecret: "cvs_pleasant_demo_secret",
   webhookSecret: "whsec_pleasant_demo_secret",
-  // Aultrum ID: the same person as Pleasant's demo admin, and Pleasant's
-  // local sign-in client.
-  identityEmail: "admin@pleasant.demo",
-  identityPassword: "aultrum-demo-123",
-  pleasantClientId: "aid_pleasant",
-  pleasantClientSecret: "aids_pleasant_demo_secret",
 };
 
 async function main() {
   if (process.env.NODE_ENV === "production") throw new Error("Refusing to seed in production");
   await prisma.organization.deleteMany();
-  await prisma.identity.deleteMany();
-  await prisma.oAuthClient.deleteMany();
 
   const org = await prisma.organization.create({ data: { name: "Aultrum" } });
   await prisma.user.create({
@@ -62,34 +54,7 @@ async function main() {
       { installationId: gateway.id, direction: "INBOUND", type: "platform.shift.assigned", payload: { shiftId: "shift_1" } },
     ],
   });
-  const workspace = (process.env.AULTRUM_WORKSPACE_URL ?? "http://workspace.localhost:3200").replace(/\/+$/, "");
-  await prisma.oAuthClient.create({
-    data: {
-      clientId: "aid_workspace",
-      // Workspace redeems codes in-process, so its secret is never used.
-      secretHash: hashSecret(`unused-${Date.now()}-${Math.random()}`),
-      name: "Aultrum Workspace",
-      product: "workspace",
-      redirectUris: [`${workspace}/callback`],
-      postLogoutRedirectUris: [workspace],
-    },
-  });
-  const pleasantApps = ["http://localhost:3100", "https://pleasant.aultrum.co.uk"];
-  await prisma.oAuthClient.create({
-    data: {
-      clientId: DEMO.pleasantClientId,
-      secretHash: hashSecret(DEMO.pleasantClientSecret),
-      name: "Pleasant",
-      product: "pleasant",
-      redirectUris: pleasantApps.map((a) => `${a}/api/auth/aultrum/callback`),
-      postLogoutRedirectUris: pleasantApps.map((a) => `${a}/login`),
-      launchUrl: `${pleasantApps[0]}/api/auth/aultrum/start`,
-    },
-  });
-  await prisma.identity.create({
-    data: { email: DEMO.identityEmail, name: "Amara Okafor", passwordHash: await bcrypt.hash(DEMO.identityPassword, 10) },
-  });
-  console.log(`Seeded. Canvas: ${DEMO.email} / ${DEMO.password}. Aultrum ID: ${DEMO.identityEmail} / ${DEMO.identityPassword}`);
+  console.log(`Seeded. Sign in as ${DEMO.email} / ${DEMO.password}`);
 }
 
 main()

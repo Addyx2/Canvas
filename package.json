@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test lib/*.test.ts lib/aultrum-id/*.test.ts",
+    "test": "tsx --test lib/*.test.ts",
     "check": "npm run typecheck && npm run lint && npm test",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts"
@@ -22,7 +22,6 @@
     "bcryptjs": "^2.4.3",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
-    "jose": "^5.9.6",
     "lucide-react": "^0.469.0",
     "next": "^15.1.4",
     "react": "^19.0.0",
