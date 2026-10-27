@@ -103,7 +103,7 @@ function toolRunner(c: GatewayConversation, state: { close?: string }): ToolRunn
     switch (name) {
       case "take_enquiry": {
         const i = input as { name: string; contact: string; organisation: string; topic: string; details: string };
-        await prisma.gatewayConversation.update({ where: { id: c.id }, data: { intent: "ENQUIRY", contactName: c.contactName ?? i.name, summary: `Enquiry: ${i.topic}` } });
+        await prisma.gatewayConversation.update({ where: { id: c.id }, data: { intent: "ENQUIRY", contactName: c.contactName ?? i.name, summary: `Enquiry: ${i.topic}`, followUp: true, followUpDoneAt: null } });
         await emitEvent(c.installationId, "gateway.enquiry.received", {
           ...who(c),
           name: i.name,
@@ -116,7 +116,7 @@ function toolRunner(c: GatewayConversation, state: { close?: string }): ToolRunn
       }
       case "take_message": {
         const i = input as { name: string; contact: string; for_whom: string; message: string };
-        await prisma.gatewayConversation.update({ where: { id: c.id }, data: { intent: "MESSAGE", contactName: c.contactName ?? i.name, summary: `Message${i.for_whom ? ` for ${i.for_whom}` : ""}` } });
+        await prisma.gatewayConversation.update({ where: { id: c.id }, data: { intent: "MESSAGE", contactName: c.contactName ?? i.name, summary: `Message${i.for_whom ? ` for ${i.for_whom}` : ""}`, followUp: true, followUpDoneAt: null } });
         await emitEvent(c.installationId, "gateway.message.left", {
           ...who(c),
           name: i.name,
@@ -143,7 +143,7 @@ function toolRunner(c: GatewayConversation, state: { close?: string }): ToolRunn
 /** Without an AI key, Gateway still takes every message and passes it to the team. */
 async function ruleTurn(c: GatewayConversation, text: string, serviceName: string): Promise<string> {
   const name = c.contactName?.split(" ")[0];
-  await prisma.gatewayConversation.update({ where: { id: c.id }, data: { intent: "MESSAGE", summary: "Message" } });
+  await prisma.gatewayConversation.update({ where: { id: c.id }, data: { intent: "MESSAGE", summary: "Message", followUp: true, followUpDoneAt: null } });
   await emitEvent(c.installationId, "gateway.message.left", {
     ...who(c),
     name: c.contactName,
@@ -252,4 +252,12 @@ export async function staffClose(installation: Installation, conversationId: str
   if (c.status === "CLOSED") return;
   await addMessage(c.id, "SYSTEM", `${staffName} closed the conversation`);
   await closeConversation(c, summary?.trim() || null, staffName);
+}
+
+/** Someone has followed up an enquiry or message Gateway took. */
+export async function markFollowedUp(installation: Installation, conversationId: string, staffName: string) {
+  const c = await owned(installation.id, conversationId);
+  if (!c.followUp || c.followUpDoneAt) return;
+  await prisma.gatewayConversation.update({ where: { id: c.id }, data: { followUpDoneAt: new Date(), followUpBy: staffName } });
+  await addMessage(c.id, "SYSTEM", `${staffName} marked it as followed up`);
 }

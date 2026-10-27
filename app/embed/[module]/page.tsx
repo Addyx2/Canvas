@@ -42,7 +42,7 @@ export default async function EmbedPage({
   if (!installation || !mod || installation.moduleKey !== moduleKey || installation.platform.revokedAt) {
     return <Problem message="This module isn't installed for your organisation." />;
   }
-  if (installation.status !== "ACTIVE") return <Problem message="This module is paused. Contact your Canvas admin." />;
+  if (installation.status !== "ACTIVE") return <Problem message="This module is paused. Contact your Elements admin." />;
 
   return (
     <main className="min-h-screen bg-slate-50 p-4 sm:p-5">

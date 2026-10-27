@@ -19,7 +19,7 @@ export async function signupAction(_prev: SignupState, formData: FormData): Prom
     ["organization", "name", "email"].map((k) => [k, String(formData.get(k) ?? "")]),
   );
   const fail = (error: string): SignupState => ({ error, values });
-  if (!(await signupOpen())) return fail("Sign-up is by invitation. Ask your Canvas admin for access.");
+  if (!(await signupOpen())) return fail("Sign-up is by invitation. Ask your Elements admin for access.");
   const parsed = signupSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Check your details");
   const email = parsed.data.email.toLowerCase();

@@ -5,7 +5,7 @@ import { ArrowRight, CheckCircle2, Circle } from "lucide-react";
 import { Badge, Card, PageHeader } from "@/components/ui";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { MODULES } from "@/lib/modules";
+import { ownInstallation } from "@/lib/standalone";
 
 export const metadata = { title: "Overview" };
 export const dynamic = "force-dynamic";
@@ -13,43 +13,82 @@ export const dynamic = "force-dynamic";
 export default async function DashboardPage() {
   const user = await requireUser();
   const org = user.organizationId;
-  const [platforms, installations, events7d, failed, recent] = await Promise.all([
-    prisma.platform.count({ where: { organizationId: org, revokedAt: null } }),
-    prisma.installation.groupBy({ by: ["moduleKey"], where: { organizationId: org, status: "ACTIVE" }, _count: true }),
+  const [gateway, peak] = await Promise.all([ownInstallation(org, "gateway"), ownInstallation(org, "peak")]);
+  const [followUps, waiting, conversations7d, pendingRewards, people, team, platforms, events7d, failed, recent] = await Promise.all([
+    gateway ? prisma.gatewayConversation.count({ where: { installationId: gateway.id, followUp: true, followUpDoneAt: null } }) : 0,
+    gateway ? prisma.gatewayConversation.count({ where: { installationId: gateway.id, status: "NEEDS_PERSON" } }) : 0,
+    gateway ? prisma.gatewayConversation.count({ where: { installationId: gateway.id, createdAt: { gte: subDays(new Date(), 7) } } }) : 0,
+    peak ? prisma.peakRedemption.count({ where: { installationId: peak.id, status: "PENDING" } }) : 0,
+    prisma.person.count({ where: { organizationId: org } }),
+    prisma.user.count({ where: { organizationId: org } }),
+    prisma.platform.count({ where: { organizationId: org, revokedAt: null, builtIn: false } }),
     prisma.event.count({ where: { installation: { organizationId: org }, createdAt: { gte: subDays(new Date(), 7) } } }),
     prisma.event.count({ where: { installation: { organizationId: org }, deliveryStatus: "FAILED" } }),
     prisma.event.findMany({
-      where: { installation: { organizationId: org } },
+      where: { installation: { organizationId: org, platform: { builtIn: false } } },
       include: { installation: { select: { moduleKey: true, tenantName: true } } },
       orderBy: { createdAt: "desc" },
-      take: 6,
+      take: 5,
     }),
   ]);
-  const active = installations.reduce((n, g) => n + g._count, 0);
-  const byModule = new Map(installations.map((g) => [g.moduleKey, g._count]));
 
   const steps = [
-    { done: platforms > 0, label: "Connect a system", detail: "Register your software to get API credentials.", href: "/systems" },
-    { done: active > 0, label: "Switch on an Element", detail: "Your system installs Gateway or Peak for one of its services through the API.", href: "/developers#install" },
-    { done: events7d > 0, label: "Send your first event", detail: "Events flow both ways between the Element and your system.", href: "/developers#events" },
+    { done: !!gateway, label: "Switch on Gateway", detail: "It answers calls, texts and web chat, and takes enquiries and messages for you.", href: "/gateway" },
+    { done: !!peak, label: "Switch on Peak", detail: "Points, praise and rewards for your carers.", href: "/peak" },
+    { done: people > 0, label: "Add your people", detail: "Carers and contacts, so Gateway knows who's calling and carers can earn points.", href: "/people" },
+    ...(user.role === "ADMIN" ? [{ done: team > 1, label: "Invite your team", detail: "Colleagues run the inbox with you; carers sign in to see their points.", href: "/team" }] : []),
+  ];
+
+  const cards = [
+    {
+      name: "Gateway",
+      href: "/gateway",
+      on: !!gateway,
+      lines: gateway
+        ? [
+            { value: followUps, label: "to follow up", alert: followUps > 0 },
+            { value: waiting, label: "waiting for a person", alert: waiting > 0 },
+            { value: conversations7d, label: "conversations this week" },
+          ]
+        : [],
+      off: "Answers calls, texts and web chat around the clock, and takes enquiries and messages.",
+    },
+    {
+      name: "Peak",
+      href: "/peak",
+      on: !!peak,
+      lines: peak ? [{ value: pendingRewards, label: `reward${pendingRewards === 1 ? "" : "s"} to approve`, alert: pendingRewards > 0 }] : [],
+      off: "Recognition that pays: carers earn points and ask for rewards you approve.",
+    },
   ];
 
   return (
     <div className="space-y-8">
-      <PageHeader title={`Welcome, ${user.name.split(" ")[0]}`} description="Your Elements, the systems they appear in, and what's flowing between them." />
+      <PageHeader title={`Welcome, ${user.name.split(" ")[0]}`} description={`What needs you today at ${user.organization.name}.`} />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[
-          { label: "Elements", value: MODULES.length, hint: `${MODULES.filter((m) => m.status === "pilot").length} in pilot` },
-          { label: "Connected systems", value: platforms, hint: "Using Persona and Elements" },
-          { label: "Active installations", value: active, hint: "Element × service" },
-          { label: "Events, last 7 days", value: events7d, hint: failed > 0 ? `${failed} failed deliveries` : "No failed deliveries" },
-        ].map((s) => (
-          <Card key={s.label} className="p-5">
-            <p className="text-sm text-slate-500">{s.label}</p>
-            <p className="mt-1 font-display text-3xl font-bold tracking-tight">{s.value}</p>
-            <p className={`mt-1 text-xs ${s.label.startsWith("Events") && failed > 0 ? "text-red-600" : "text-slate-500"}`}>{s.hint}</p>
-          </Card>
+      <div className="grid gap-4 md:grid-cols-2">
+        {cards.map((c) => (
+          <Link key={c.name} href={c.href}>
+            <Card className="h-full p-5 transition hover:border-slate-300">
+              <div className="flex items-center justify-between">
+                <h2 className="font-display text-lg font-semibold">{c.name}</h2>
+                <Badge tone={c.on ? "green" : "slate"}>{c.on ? "On" : "Off"}</Badge>
+              </div>
+              {c.on ? (
+                <ul className="mt-3 space-y-1.5">
+                  {c.lines.map((l) => (
+                    <li key={l.label} className="flex items-baseline gap-2 text-sm">
+                      <span className={`font-display text-2xl font-bold tracking-tight ${l.alert ? "text-amber-600" : "text-slate-900"}`}>{l.value}</span>
+                      <span className="text-slate-600">{l.label}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-2 text-sm text-slate-600">{c.off}</p>
+              )}
+              <p className="mt-4 flex items-center gap-1 text-sm font-medium text-brand-700">{c.on ? `Open ${c.name}` : `Switch on ${c.name}`} <ArrowRight className="h-3.5 w-3.5" /></p>
+            </Card>
+          </Link>
         ))}
       </div>
 
@@ -71,35 +110,26 @@ export default async function DashboardPage() {
       ) : null}
 
       <section>
-        <h2 className="text-sm font-semibold">Elements</h2>
-        <div className="mt-3 grid gap-4 md:grid-cols-2">
-          {MODULES.map((m) => (
-            <Link key={m.key} href={`/elements/${m.key}`}>
-              <Card className="h-full p-5 transition hover:border-slate-300">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-display text-lg font-semibold">{m.name}</h3>
-                  <Badge tone={m.status === "pilot" ? "brand" : "slate"}>{m.status === "pilot" ? "Pilot" : "Planned"}</Badge>
-                </div>
-                <p className="mt-1 text-sm text-slate-600">{m.tagline}</p>
-                <p className="mt-4 flex items-center gap-1 text-sm text-slate-500">
-                  {byModule.get(m.key) ?? 0} active installation{byModule.get(m.key) === 1 ? "" : "s"} <ArrowRight className="h-3.5 w-3.5" />
-                </p>
-              </Card>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      <section>
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold">Recent events</h2>
-          <Link href="/events" className="text-sm font-medium text-brand-700 hover:text-brand-800">All events →</Link>
+          <h2 className="text-sm font-semibold">Developers</h2>
+          <Link href="/developers" className="text-sm font-medium text-brand-700 hover:text-brand-800">API →</Link>
         </div>
-        <Card className="mt-3 divide-y divide-slate-100">
-          {recent.length === 0 ? (
-            <p className="p-5 text-sm text-slate-500">No events yet.</p>
-          ) : (
-            recent.map((e) => (
+        <p className="mt-1 text-sm text-slate-500">Run Gateway and Peak inside your own software, such as Pleasant.</p>
+        <div className="mt-3 grid gap-4 sm:grid-cols-2">
+          <Card className="p-5">
+            <p className="text-sm text-slate-500">Connected systems</p>
+            <p className="mt-1 font-display text-3xl font-bold tracking-tight">{platforms}</p>
+            <Link href="/systems" className="mt-1 inline-block text-xs text-brand-700 hover:text-brand-800">Manage →</Link>
+          </Card>
+          <Card className="p-5">
+            <p className="text-sm text-slate-500">Events, last 7 days</p>
+            <p className="mt-1 font-display text-3xl font-bold tracking-tight">{events7d}</p>
+            <p className={`mt-1 text-xs ${failed > 0 ? "text-red-600" : "text-slate-500"}`}>{failed > 0 ? `${failed} failed deliveries` : "No failed deliveries"}</p>
+          </Card>
+        </div>
+        {recent.length > 0 ? (
+          <Card className="mt-4 divide-y divide-slate-100">
+            {recent.map((e) => (
               <div key={e.id} className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm">
                 <span className="flex items-center gap-2">
                   <Badge tone={e.direction === "INBOUND" ? "blue" : "brand"}>{e.direction === "INBOUND" ? "In" : "Out"}</Badge>
@@ -108,9 +138,9 @@ export default async function DashboardPage() {
                 </span>
                 <span className="text-xs text-slate-400">{formatDistanceToNowStrict(e.createdAt, { addSuffix: true })}</span>
               </div>
-            ))
-          )}
-        </Card>
+            ))}
+          </Card>
+        ) : null}
       </section>
     </div>
   );

@@ -23,7 +23,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           </p>
         ) : null}
         <p>
-          <a href="https://aultrum.co.uk/canvas/" className="hover:text-slate-800">What is Aultrum Canvas?</a>
+          <a href="https://aultrum.co.uk/elements" className="hover:text-slate-800">What is Aultrum Elements?</a>
         </p>
       </div>
     </AuthShell>

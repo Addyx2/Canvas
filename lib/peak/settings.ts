@@ -29,8 +29,8 @@ export function readPeakSettings(settings: unknown): PeakSettings {
 
 /** Rewards a new installation starts with; managers can change them in the console. */
 export const DEFAULT_REWARDS = [
-  { name: "Cash out £5", description: "Paid with your next payroll run.", kind: "CASH_OUT" as const, cost: 500 },
-  { name: "Cash out £20", description: "Paid with your next payroll run.", kind: "CASH_OUT" as const, cost: 2000 },
+  { name: "Cash out £5", description: "Paid to you once your manager approves it.", kind: "CASH_OUT" as const, cost: 500 },
+  { name: "Cash out £20", description: "Paid to you once your manager approves it.", kind: "CASH_OUT" as const, cost: 2000 },
   { name: "£10 shopping voucher", description: "Sent to you by your manager.", kind: "PERK" as const, cost: 1000 },
   { name: "Choose your shifts first next week", description: "First pick of next week's open shifts.", kind: "PERK" as const, cost: 750 },
 ];

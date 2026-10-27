@@ -19,7 +19,7 @@ export default async function SignupPage() {
           <div className="mt-8"><SignupForm /></div>
         </>
       ) : (
-        <p className="mt-3 text-sm text-slate-600">Canvas is by invitation. Ask your Canvas admin to add you.</p>
+        <p className="mt-3 text-sm text-slate-600">Elements is by invitation for now. Ask your admin to invite you.</p>
       )}
       <p className="mt-8 text-center text-sm text-slate-500">
         Already have an account? <Link href="/login" className="font-semibold text-brand-700 hover:text-brand-800">Sign in</Link>

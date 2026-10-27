@@ -61,9 +61,21 @@ export const getSessionUser = cache(async () => {
 
 export type SessionUser = NonNullable<Awaited<ReturnType<typeof getSessionUser>>>;
 
-export async function requireUser(): Promise<SessionUser> {
+/** Where someone lands after signing in: carers only have their own Peak page. */
+export function homeFor(role: string): string {
+  return role === "CARER" ? "/me" : "/dashboard";
+}
+
+export async function requireSignedIn(): Promise<SessionUser> {
   const user = await getSessionUser();
   if (!user) redirect("/login");
+  return user;
+}
+
+/** Staff pages (everything but a carer's own page). */
+export async function requireUser(): Promise<SessionUser> {
+  const user = await requireSignedIn();
+  if (user.role === "CARER") redirect("/me");
   return user;
 }
 

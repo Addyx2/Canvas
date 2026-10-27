@@ -11,6 +11,7 @@ type Channel = "WEBCHAT" | "SMS" | "VOICE";
 interface Summary {
   id: string; channel: Channel; contact: string; contactName: string | null; intent: string; status: Status;
   summary: string | null; handoverReason: string | null; staffName: string | null; lastMessageAt: string; preview: string;
+  followUp: boolean;
 }
 interface Detail extends Omit<Summary, "preview" | "lastMessageAt"> {
   createdAt: string;
@@ -34,6 +35,7 @@ export function GatewayInbox({ token }: { token: string }) {
   const [selected, setSelected] = useState<string | null>(null);
   const conversations = list.data?.conversations ?? [];
   const needs = conversations.filter((c) => c.status === "NEEDS_PERSON").length;
+  const toFollow = conversations.filter((c) => c.followUp);
 
   if (!list.data) return <p className="p-6 text-sm text-slate-500">{list.error ?? "Loading conversations…"}</p>;
   return (
@@ -43,6 +45,20 @@ export function GatewayInbox({ token }: { token: string }) {
           <h2 className="text-sm font-semibold">Conversations</h2>
           {needs > 0 ? <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">{needs} need a person</span> : null}
         </div>
+        {toFollow.length > 0 ? (
+          <div className="border-b border-slate-100 bg-amber-50/60 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-amber-800">To follow up · {toFollow.length}</p>
+            <ul className="mt-2 space-y-1.5">
+              {toFollow.slice(0, 8).map((c) => (
+                <li key={c.id}>
+                  <button onClick={() => setSelected(c.id)} className="w-full truncate text-left text-sm text-slate-800 hover:text-brand-700">
+                    <span className="font-medium">{c.contactName ?? c.contact}</span> · {c.summary ?? c.preview}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
         {conversations.length === 0 ? (
           <p className="p-6 text-sm text-slate-500">
             No conversations yet. {list.data.channels.phone ? `Calls and texts to ${list.data.channels.phone}` : "Calls and texts"}{list.data.channels.webchat ? " and your web chat" : ""} appear here.
@@ -112,6 +128,9 @@ function Conversation({ id, api, onBack, onChange }: { id: string; api: ReturnTy
           {c.handoverReason && c.status === "NEEDS_PERSON" ? <p className="mt-1 text-xs font-medium text-red-700">{c.handoverReason}</p> : null}
         </div>
         <div className="flex flex-wrap gap-2">
+          {c.followUp ? (
+            <button className={`${btn} bg-amber-500 text-white hover:bg-amber-600`} disabled={busy} onClick={() => act({ action: "followed_up" })}>Mark followed up</button>
+          ) : null}
           {c.status === "WITH_AI" || c.status === "NEEDS_PERSON" ? (
             <button className={`${btn} bg-ink text-white hover:bg-slate-800`} disabled={busy} onClick={() => act({ action: "take_over" })}><Hand className="h-4 w-4" />Take over</button>
           ) : null}

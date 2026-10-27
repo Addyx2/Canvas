@@ -48,7 +48,7 @@ export async function sendTestEventAction(formData: FormData): Promise<void> {
   const installation = await owned(user.organizationId, String(formData.get("id") ?? ""));
   if (!installation || installation.status !== "ACTIVE") return;
   await emitEvent(installation.id, `${installation.moduleKey}.test`, {
-    message: "Test event from Aultrum Canvas",
+    message: "Test event from Aultrum Elements",
     sentBy: user.name,
   });
   await recordAudit(user, { action: "event.test", summary: `Sent a test event to ${installation.platform.name}` });
