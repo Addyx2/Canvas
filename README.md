@@ -40,5 +40,5 @@ npm run dev -- -p 3200
    in the database, and the address defaults to `https://canvas.aultrum.co.uk`.
 3. Add the domain `canvas.aultrum.co.uk` to the project, and the CNAME record
    Vercel shows to your DNS.
-4. Open the site and create the first organisation; sign-up then closes
-   (set `ALLOW_SIGNUP=true` to reopen it).
+4. Open the site and create your organisation. Sign-up stays open to anyone
+   (set `ALLOW_SIGNUP=false` to make it invite-only).
