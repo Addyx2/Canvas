@@ -10,6 +10,8 @@ datasource db {
 enum Role {
   ADMIN
   MEMBER
+  /// Sees only their own Peak points and rewards.
+  CARER
 }
 
 enum InstallationStatus {
@@ -30,6 +32,8 @@ model Organization {
   createdAt DateTime @default(now())
 
   users         User[]
+  people        Person[]
+  invites       Invite[]
   platforms     Platform[]
   installations Installation[]
   auditEvents   AuditEvent[]
@@ -42,6 +46,8 @@ model User {
   name             String
   passwordHash     String
   role             Role      @default(ADMIN)
+  /// CARER only: the person in People whose Peak points they see.
+  personId         String?
   sessionVersion   Int       @default(0)
   failedLoginCount Int       @default(0)
   lockedUntil      DateTime?
@@ -70,6 +76,9 @@ model Platform {
   /// secret (e.g. Pleasant). Canvas checks requests against this public key set
   /// and signs webhooks to them with its own key.
   jwksUri        String?
+  /// The organisation's own Elements app (Gateway and Peak used directly in
+  /// the console), rather than an outside system.
+  builtIn        Boolean   @default(false)
   revokedAt      DateTime?
   createdAt      DateTime  @default(now())
 
@@ -314,6 +323,10 @@ model GatewayConversation {
   staffName      String?
   /// The agent's conversation state (Claude messages), so a turn can resume.
   agentState     Json           @default("[]")
+  /// Set when Gateway took an enquiry or a message that someone should follow up.
+  followUp       Boolean        @default(false)
+  followUpDoneAt DateTime?
+  followUpBy     String?
   lastMessageAt  DateTime       @default(now())
   createdAt      DateTime       @default(now())
 
@@ -335,4 +348,43 @@ model GatewayMessage {
   conversation GatewayConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@index([conversationId, createdAt])
+}
+
+// ---------------------------------------------------------------- People and team (Elements used on its own)
+
+/// Someone the organisation works with: a carer (earns Peak points), a client
+/// contact, or anyone else Gateway should recognise when they call.
+model Person {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  phone          String?
+  email          String?
+  kind           String   @default("carer")
+  organisation   String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, kind])
+}
+
+/// An invitation to join the organisation. The link is shown once; only its hash is kept.
+model Invite {
+  id             String    @id @default(cuid())
+  organizationId String
+  email          String
+  name           String
+  role           Role
+  personId       String?
+  tokenHash      String    @unique
+  invitedBy      String
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  createdAt      DateTime  @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
 }

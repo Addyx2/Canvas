@@ -4,7 +4,7 @@ import { SESSION_COOKIE } from "./lib/constants";
 import { frameAncestors, verifyEmbedToken } from "./lib/embed-token";
 import { authSecret } from "./lib/secret";
 
-const CONSOLE_PREFIXES = ["/dashboard", "/elements", "/systems", "/installations", "/events", "/developers"];
+const CONSOLE_PREFIXES = ["/dashboard", "/elements", "/systems", "/installations", "/events", "/developers", "/gateway", "/peak", "/people", "/team", "/me"];
 
 export async function middleware(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
@@ -43,5 +43,10 @@ export const config = {
     "/installations/:path*",
     "/events/:path*",
     "/developers/:path*",
+    "/gateway/:path*",
+    "/peak/:path*",
+    "/people/:path*",
+    "/team/:path*",
+    "/me/:path*",
   ],
 };

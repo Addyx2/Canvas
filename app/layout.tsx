@@ -7,7 +7,7 @@ const dm = DM_Sans({ subsets: ["latin"], variable: "--font-dm", display: "swap" 
 const grotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-grotesk", display: "swap" });
 
 export const metadata: Metadata = {
-  title: { default: "Aultrum Canvas", template: "%s · Aultrum Canvas" },
+  title: { default: "Aultrum Elements", template: "%s · Aultrum Elements" },
   description: "The console for Persona and Elements: Aultrum's AI and care modules inside the systems you already use.",
   robots: { index: false },
 };

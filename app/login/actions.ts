@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { recordAudit } from "@/lib/audit";
-import { requireUser, setSessionCookie, verifyPassword } from "@/lib/auth";
+import { homeFor, requireSignedIn, setSessionCookie, verifyPassword } from "@/lib/auth";
 import { LOCKOUT_MINUTES, MAX_FAILED_LOGINS, SESSION_COOKIE } from "@/lib/constants";
 import { prisma } from "@/lib/db";
 import { safeNextPath } from "@/lib/utils";
@@ -56,7 +56,7 @@ export async function loginAction(_prev: LoginState, formData: FormData): Promis
   });
   await recordAudit(user, { action: "auth.login", summary: "Signed in" });
   await setSessionCookie(user);
-  redirect(safeNextPath(String(formData.get("next") ?? "")) ?? "/dashboard");
+  redirect(user.role === "CARER" ? homeFor(user.role) : (safeNextPath(String(formData.get("next") ?? "")) ?? homeFor(user.role)));
 }
 
 export async function logoutAction(): Promise<void> {
@@ -65,7 +65,7 @@ export async function logoutAction(): Promise<void> {
 }
 
 export async function logoutEverywhereAction(): Promise<void> {
-  const user = await requireUser();
+  const user = await requireSignedIn();
   await prisma.user.update({ where: { id: user.id }, data: { sessionVersion: { increment: 1 } } });
   await recordAudit(user, { action: "auth.logout_all", summary: "Signed out of all devices" });
   (await cookies()).delete(SESSION_COOKIE);

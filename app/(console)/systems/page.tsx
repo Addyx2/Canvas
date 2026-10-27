@@ -16,7 +16,7 @@ export default async function PlatformsPage() {
   const pleasantOrigin = (process.env.PLEASANT_URL ?? (process.env.NODE_ENV === "production" ? "https://pleasant.aultrum.co.uk" : "http://localhost:3100")).replace(/\/$/, "");
   const pleasantConnected = await prisma.platform.findFirst({ where: { clientId: new URL(pleasantOrigin).host, revokedAt: null } });
   const platforms = await prisma.platform.findMany({
-    where: { organizationId: user.organizationId },
+    where: { organizationId: user.organizationId, builtIn: false },
     include: { _count: { select: { installations: { where: { status: "ACTIVE" } } } } },
     orderBy: [{ revokedAt: "asc" }, { createdAt: "asc" }],
   });

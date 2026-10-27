@@ -18,7 +18,7 @@ export function Wordmark({ dark = false }: { dark?: boolean }) {
       <CanvasMark className={dark ? "bg-white/10" : undefined} />
       <span className="leading-tight">
         <span className={cn("block text-[11px] font-semibold uppercase tracking-[0.18em]", dark ? "text-white/50" : "text-slate-400")}>Aultrum</span>
-        <span className={cn("block font-display text-[17px] font-bold tracking-tight", dark ? "text-white" : "text-ink")}>Canvas</span>
+        <span className={cn("block font-display text-[17px] font-bold tracking-tight", dark ? "text-white" : "text-ink")}>Elements</span>
       </span>
     </span>
   );

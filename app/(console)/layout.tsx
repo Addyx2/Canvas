@@ -15,11 +15,11 @@ export default async function ConsoleLayout({ children }: { children: React.Reac
           <Wordmark />
         </div>
         <div className="px-3 pb-3 lg:flex-1">
-          <ConsoleNav />
+          <ConsoleNav isAdmin={user.role === "ADMIN"} />
         </div>
         <div className="hidden border-t border-slate-200 p-4 lg:block">
           <p className="truncate text-sm font-medium text-slate-900">{user.name}</p>
-          <p className="truncate text-xs text-slate-500">{user.organization.name} · {user.role === "ADMIN" ? "Admin" : "Member"}</p>
+          <p className="truncate text-xs text-slate-500">{user.organization.name} · {user.role === "ADMIN" ? "Admin" : user.role === "CARER" ? "Carer" : "Member"}</p>
           <form action={logoutAction} className="mt-3">
             <button type="submit" className="flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-900">
               <LogOut className="h-4 w-4" /> Sign out

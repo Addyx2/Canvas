@@ -43,7 +43,8 @@ export async function GET(request: Request) {
     });
   }
 
-  const [members, totals, pending, recent] = await Promise.all([
+  const platform = await prisma.platform.findUnique({ where: { id: installation.platformId }, select: { builtIn: true, webhookUrl: true } });
+  const [members, totals, pending, recent, approved] = await Promise.all([
     prisma.peakMember.findMany({ where: { installationId: installation.id }, select: { id: true, personId: true, name: true, streak: true } }),
     balances(installation.id),
     prisma.peakRedemption.findMany({
@@ -57,9 +58,17 @@ export async function GET(request: Request) {
       take: 20,
       select: { ...entrySelect, member: { select: { name: true } } },
     }),
+    prisma.peakRedemption.findMany({
+      where: { installationId: installation.id, status: "APPROVED" },
+      orderBy: { decidedAt: "desc" },
+      take: 10,
+      select: { id: true, rewardName: true, kind: true, amountPence: true, decidedAt: true, decidedBy: true, member: { select: { name: true } } },
+    }),
   ]);
   const board = members
     .map((m) => ({ ...m, balance: totals.get(m.id) ?? 0 }))
     .sort((a, b) => b.balance - a.balance || a.name.localeCompare(b.name));
-  return embedJson(ctx, { view: "manager", tenantName: installation.tenantName, settings, rewards, members: board, pending, recent });
+  // Cash-outs go to a connected system's payroll; on its own, the organisation pays them.
+  const paidBySystem = Boolean(platform && !platform.builtIn && platform.webhookUrl);
+  return embedJson(ctx, { view: "manager", tenantName: installation.tenantName, settings, rewards, members: board, pending, recent, approved, paidBySystem });
 }

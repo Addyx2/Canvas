@@ -15,6 +15,8 @@ interface ManagerData {
   members: { id: string; personId: string; name: string; streak: number; balance: number }[];
   pending: { id: string; rewardName: string; kind: string; points: number; amountPence: number | null; createdAt: string; member: { name: string } }[];
   recent: Entry[];
+  approved: { id: string; rewardName: string; kind: "CASH_OUT" | "PERK"; amountPence: number | null; decidedAt: string; decidedBy: string | null; member: { name: string } }[];
+  paidBySystem: boolean;
 }
 interface MemberData {
   view: "member"; tenantName: string; settings: Settings; rewards: Reward[];
@@ -161,6 +163,21 @@ function Manager({ data, api, refresh }: { data: ManagerData; api: Api; refresh:
               </ul>
             )}
           </section>
+
+          {data.approved.length > 0 ? (
+            <section className={card}>
+              <h2 className="border-b border-slate-100 px-4 py-3 text-sm font-semibold">Recently approved</h2>
+              <p className="px-4 pt-3 text-xs text-slate-500">{data.paidBySystem ? "Cash-outs were sent to your system to pay through payroll." : "Pay cash-outs yourself, and give perks by hand: Peak isn't connected to a payroll."}</p>
+              <ul className="divide-y divide-slate-100">
+                {data.approved.map((r) => (
+                  <li key={r.id} className="flex items-start justify-between gap-3 px-4 py-2.5 text-sm">
+                    <div className="min-w-0"><p className="truncate text-slate-800">{r.member.name}: {r.rewardName}</p><p className="text-xs text-slate-500">Approved {ago(r.decidedAt)}{r.decidedBy ? ` by ${r.decidedBy}` : ""}</p></div>
+                    {r.amountPence ? <span className="tabular-nums font-semibold text-slate-800">{pounds(r.amountPence)}</span> : null}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
 
           <section className={`${card} p-4 text-xs leading-relaxed text-slate-500`}>
             <p className="font-semibold text-slate-700">How points are earned</p>

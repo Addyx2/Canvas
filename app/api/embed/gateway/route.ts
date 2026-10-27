@@ -20,7 +20,11 @@ export async function GET(request: Request) {
       include: { messages: { orderBy: { createdAt: "desc" }, take: 1 } },
     }),
     prisma.gatewayConversation.findMany({
-      where: { installationId: installation.id, status: "CLOSED", lastMessageAt: { gt: new Date(Date.now() - 7 * 86400_000) } },
+      where: {
+        installationId: installation.id,
+        status: "CLOSED",
+        OR: [{ lastMessageAt: { gt: new Date(Date.now() - 7 * 86400_000) } }, { followUp: true, followUpDoneAt: null }],
+      },
       orderBy: { lastMessageAt: "desc" },
       take: 30,
       include: { messages: { orderBy: { createdAt: "desc" }, take: 1 } },
@@ -40,6 +44,7 @@ export async function GET(request: Request) {
       staffName: c.staffName,
       lastMessageAt: c.lastMessageAt,
       preview: c.messages[0]?.body.slice(0, 140) ?? "",
+      followUp: c.followUp && !c.followUpDoneAt,
     }));
   const settings = readGatewaySettings(installation.settings);
   return embedJson(ctx, {
