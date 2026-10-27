@@ -25,7 +25,7 @@ export async function signupAction(_prev: SignupState, formData: FormData): Prom
   if (!(await signupOpen())) return fail("Sign-up is by invitation. Ask your Elements admin for access.");
   // Without email, a new account could never be verified, so sign-up waits for it.
   if (process.env.NODE_ENV === "production" && !emailConfigured()) {
-    return fail("Sign-up opens shortly. Email hello@aultrum.co.uk and we'll set you up.");
+    return fail("Sign-up opens shortly. Email Wisdom@aultrum.co.uk and we'll set you up.");
   }
   if (!(await allow(`signup:${await clientIp()}`, LIMITS.signup))) return fail(TOO_MANY);
   const parsed = signupSchema.safeParse(Object.fromEntries(formData));
