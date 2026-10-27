@@ -25,6 +25,8 @@ export async function POST(request: Request) {
     return apiError(409, "Add the platform's origin under Platforms before embedding module screens");
   }
   const mod = findModule(installation.moduleKey)!;
+  const { role, personId } = parsed.data.user;
+  if (role === "member" && !personId) return apiError(400, "A member's embed needs user.personId");
 
   const token = await signEmbedToken(
     {
@@ -33,6 +35,8 @@ export async function POST(request: Request) {
       sub: parsed.data.user.id,
       name: parsed.data.user.name,
       origins: platform.allowedOrigins,
+      role,
+      ...(role === "member" ? { person: personId } : {}),
     },
     await authSecret(),
   );

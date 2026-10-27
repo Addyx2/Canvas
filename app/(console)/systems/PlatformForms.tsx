@@ -6,6 +6,7 @@ import { Check, Copy, KeyRound } from "lucide-react";
 import { buttonClass, inputClass, labelClass, subtleButtonClass } from "@/components/ui";
 
 import {
+  connectByKeyAction,
   createPlatformAction,
   revokePlatformAction,
   rotateSecretsAction,
@@ -79,7 +80,30 @@ export function CreatePlatformForm() {
   );
 }
 
-export function EditPlatformForm({ platform }: { platform: { id: string; name: string; webhookUrl: string | null; allowedOrigins: string[] } }) {
+/** Connect a system by its public key address. `suggested` pre-fills a known Aultrum platform. */
+export function ConnectByKeyForm({ suggested }: { suggested?: { name: string; jwksUri: string } }) {
+  const [state, action, pending] = useActionState<PlatformFormState, FormData>(connectByKeyAction, {});
+  if (state.connected) {
+    return <p role="status" className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{state.connected} is connected. Nothing to copy: it signs its own requests.</p>;
+  }
+  return (
+    <form action={action} className="space-y-4">
+      <div>
+        <label className={labelClass} htmlFor="key-name">System name</label>
+        <input id="key-name" name="name" required defaultValue={suggested?.name} className={`mt-1 ${inputClass}`} />
+      </div>
+      <div>
+        <label className={labelClass} htmlFor="jwksUri">Public key address</label>
+        <input id="jwksUri" name="jwksUri" required defaultValue={suggested?.jwksUri} placeholder="https://example.org/.well-known/jwks.json" className={`mt-1 ${inputClass}`} />
+        <p className="mt-1 text-xs text-slate-500">Where the system publishes its public key. No secrets are exchanged.</p>
+      </div>
+      {state.error ? <p role="alert" className="text-sm text-red-700">{state.error}</p> : null}
+      <button type="submit" disabled={pending} className={buttonClass}>{pending ? "Connecting…" : `Connect ${suggested?.name ?? "system"}`}</button>
+    </form>
+  );
+}
+
+export function EditPlatformForm({ platform }: { platform: { id: string; name: string; webhookUrl: string | null; allowedOrigins: string[]; jwksUri: string | null } }) {
   const [state, action, pending] = useActionState<PlatformFormState, FormData>(updatePlatformAction, {});
   const [rotateState, rotate, rotating] = useActionState<PlatformFormState, FormData>(rotateSecretsAction, {});
   return (
@@ -90,7 +114,9 @@ export function EditPlatformForm({ platform }: { platform: { id: string; name: s
         {state.error ? <p role="alert" className="text-sm text-red-700">{state.error}</p> : null}
         <button type="submit" disabled={pending} className={subtleButtonClass}>{pending ? "Saving…" : "Save changes"}</button>
       </form>
-      {rotateState.credentials ? (
+      {platform.jwksUri ? (
+        <p className="text-xs text-slate-500">Connected by its public key at <code>{platform.jwksUri}</code>. There are no secrets to rotate.</p>
+      ) : rotateState.credentials ? (
         <Credentials credentials={rotateState.credentials} />
       ) : (
         <form

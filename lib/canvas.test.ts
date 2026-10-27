@@ -71,7 +71,8 @@ test("module manifests are well formed", () => {
     for (const e of [...m.emits]) assert.ok(e.type.startsWith(`${m.key}.`), `${m.key} emits ${e.type}`);
     for (const e of m.consumes) assert.ok(e.type.startsWith("platform."), `${m.key} consumes ${e.type}`);
   }
-  assert.equal(acceptsEvent("gateway", "platform.shift.assigned"), true);
+  assert.equal(acceptsEvent("gateway", "platform.person.updated"), true);
+  assert.equal(acceptsEvent("peak", "platform.shift.completed"), true);
   assert.equal(acceptsEvent("gateway", "platform.clock.in"), false);
   assert.equal(acceptsEvent("nope", "platform.shift.assigned"), false);
 });

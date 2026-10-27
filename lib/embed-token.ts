@@ -13,6 +13,10 @@ export interface EmbedClaims {
   name: string;
   /** Origins allowed to frame the screen. */
   origins: string[];
+  /** What the viewer may do: a manager sees everyone, a member only themselves. Defaults to manager. */
+  role?: "manager" | "member";
+  /** The platform's ID for the person viewing, when they are a member (e.g. a carer in Peak). */
+  person?: string;
   /** Expiry, seconds since epoch. */
   exp: number;
 }

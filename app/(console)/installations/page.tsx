@@ -54,6 +54,7 @@ export default async function InstallationsPage() {
                     <Td className="text-right">
                       {isAdmin && i.status !== "UNINSTALLED" ? (
                         <div className="flex flex-wrap justify-end gap-4">
+                          <Link href={`/installations/${i.id}`} className={linkButton}>Settings</Link>
                           <form action={previewInstallationAction} target="_blank">
                             <input type="hidden" name="id" value={i.id} />
                             <button type="submit" className={linkButton}>Preview</button>

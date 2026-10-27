@@ -1,6 +1,7 @@
 import type { Prisma } from "@prisma/client";
 
 import { prisma } from "./db";
+import { signWebhookJwt } from "./canvas-key";
 import { SIGNATURE_HEADER, signWebhook } from "./webhook-signature";
 
 /**
@@ -43,7 +44,13 @@ export async function deliverEvent(eventId: string) {
   try {
     const res = await fetch(platform.webhookUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/json", [SIGNATURE_HEADER]: signWebhook(body, platform.webhookSecret) },
+      headers: {
+        "Content-Type": "application/json",
+        // Key-based systems check Canvas's signed token; secret-based ones the HMAC signature.
+        ...(platform.jwksUri
+          ? { Authorization: `Bearer ${await signWebhookJwt(body, platform.clientId, event.id)}` }
+          : { [SIGNATURE_HEADER]: signWebhook(body, platform.webhookSecret) }),
+      },
       body,
       signal: AbortSignal.timeout(8000),
     });

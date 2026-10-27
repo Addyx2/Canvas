@@ -48,11 +48,11 @@ async function main() {
       tenantName: "Brightwater Care",
     },
   });
-  await prisma.event.createMany({
-    data: [
-      { installationId: gateway.id, direction: "INBOUND", type: "platform.person.updated", payload: { personId: "carer_1" } },
-      { installationId: gateway.id, direction: "INBOUND", type: "platform.shift.assigned", payload: { shiftId: "shift_1" } },
-    ],
+  await prisma.installation.create({
+    data: { organizationId: org.id, platformId: pleasant.id, moduleKey: "peak", tenantId: "brightwater", tenantName: "Brightwater Care" },
+  });
+  await prisma.gatewayPerson.create({
+    data: { installationId: gateway.id, personId: "carer_1", name: "Grace Miller", phone: "+447700900123", kind: "carer" },
   });
   console.log(`Seeded. Sign in as ${DEMO.email} / ${DEMO.password}`);
 }

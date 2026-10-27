@@ -66,6 +66,10 @@ model Platform {
   webhookUrl     String?
   /// Origins allowed to embed module screens (CSP frame-ancestors).
   allowedOrigins String[]  @default([])
+  /// Set for systems that sign their requests with their own key instead of a
+  /// secret (e.g. Pleasant). Canvas checks requests against this public key set
+  /// and signs webhooks to them with its own key.
+  jwksUri        String?
   revokedAt      DateTime?
   createdAt      DateTime  @default(now())
 
@@ -90,6 +94,13 @@ model Installation {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   platform     Platform     @relation(fields: [platformId], references: [id], onDelete: Cascade)
   events       Event[]
+
+  peakMembers       PeakMember[]
+  peakEntries       PeakEntry[]
+  peakRewards       PeakReward[]
+  peakRedemptions   PeakRedemption[]
+  gatewayPeople     GatewayPerson[]
+  gatewayConversations GatewayConversation[]
 
   @@unique([platformId, moduleKey, tenantId])
   @@index([organizationId, status])
@@ -135,4 +146,193 @@ model ServiceKey {
   name      String   @id
   value     String
   createdAt DateTime @default(now())
+}
+
+// ---------------------------------------------------------------- Peak
+
+enum PeakEntryKind {
+  SHIFT
+  ON_TIME
+  STREAK
+  PRAISE
+  AWARD
+  REDEMPTION
+  REVERSAL
+}
+
+enum PeakRewardKind {
+  CASH_OUT // paid through the platform's payroll
+  PERK
+}
+
+enum PeakRedemptionStatus {
+  PENDING
+  APPROVED
+  DECLINED
+}
+
+/// A person who earns Peak points, identified by the platform's own ID.
+model PeakMember {
+  id             String   @id @default(cuid())
+  installationId String
+  personId       String
+  name           String
+  /// Consecutive on-time clock-ins, for streak bonuses.
+  streak         Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  installation Installation     @relation(fields: [installationId], references: [id], onDelete: Cascade)
+  entries      PeakEntry[]
+  redemptions  PeakRedemption[]
+
+  @@unique([installationId, personId])
+}
+
+/// The points ledger. A balance is the sum of a member's entries; entries are
+/// never edited, only reversed.
+model PeakEntry {
+  id             String        @id @default(cuid())
+  installationId String
+  memberId       String
+  kind           PeakEntryKind
+  points         Int
+  reason         String
+  /// Stops the same platform event scoring twice, e.g. "clock:shift_123".
+  sourceKey      String?
+  byName         String?
+  createdAt      DateTime      @default(now())
+
+  installation Installation @relation(fields: [installationId], references: [id], onDelete: Cascade)
+  member       PeakMember   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([installationId, sourceKey])
+  @@index([memberId, createdAt])
+}
+
+model PeakReward {
+  id             String         @id @default(cuid())
+  installationId String
+  name           String
+  description    String         @default("")
+  kind           PeakRewardKind
+  cost           Int
+  active         Boolean        @default(true)
+  createdAt      DateTime       @default(now())
+
+  installation Installation     @relation(fields: [installationId], references: [id], onDelete: Cascade)
+  redemptions  PeakRedemption[]
+}
+
+model PeakRedemption {
+  id             String               @id @default(cuid())
+  installationId String
+  memberId       String
+  rewardId       String?
+  rewardName     String
+  kind           PeakRewardKind
+  points         Int
+  /// CASH_OUT only: what the platform pays through payroll.
+  amountPence    Int?
+  status         PeakRedemptionStatus @default(PENDING)
+  decidedBy      String?
+  decidedAt      DateTime?
+  note           String?
+  createdAt      DateTime             @default(now())
+
+  installation Installation @relation(fields: [installationId], references: [id], onDelete: Cascade)
+  member       PeakMember   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  reward       PeakReward?  @relation(fields: [rewardId], references: [id], onDelete: SetNull)
+
+  @@index([installationId, status])
+}
+
+// ---------------------------------------------------------------- Gateway
+
+enum GatewayChannel {
+  WEBCHAT
+  SMS
+  VOICE
+}
+
+enum GatewayStatus {
+  WITH_AI     // Gateway's agent is answering
+  NEEDS_PERSON // waiting for a member of staff
+  WITH_PERSON // a member of staff has taken over
+  CLOSED
+}
+
+enum GatewayIntent {
+  ENQUIRY
+  MESSAGE
+  EMERGENCY
+  OTHER
+  // No longer used: Gateway takes enquiries only. Kept so the deployed
+  // database's enum is only ever added to, never shrunk.
+  ABSENCE
+  COVER_REQUEST
+}
+
+enum GatewaySender {
+  CONTACT
+  AGENT
+  STAFF
+  SYSTEM
+}
+
+/// People the platform knows, so Gateway recognises who is calling.
+model GatewayPerson {
+  id             String   @id @default(cuid())
+  installationId String
+  personId       String
+  name           String
+  /// E.164, e.g. +447700900123.
+  phone          String?
+  /// "carer", "client" or another label the platform uses.
+  kind           String   @default("carer")
+  organisation   String?
+  updatedAt      DateTime @updatedAt
+
+  installation Installation @relation(fields: [installationId], references: [id], onDelete: Cascade)
+
+  @@unique([installationId, personId])
+  @@index([installationId, phone])
+}
+
+model GatewayConversation {
+  id             String         @id @default(cuid())
+  installationId String
+  channel        GatewayChannel
+  /// Phone number or web chat visitor key.
+  contact        String
+  contactName    String?
+  personId       String?
+  intent         GatewayIntent  @default(ENQUIRY)
+  status         GatewayStatus  @default(WITH_AI)
+  summary        String?
+  handoverReason String?
+  staffName      String?
+  /// The agent's conversation state (Claude messages), so a turn can resume.
+  agentState     Json           @default("[]")
+  lastMessageAt  DateTime       @default(now())
+  createdAt      DateTime       @default(now())
+
+  installation Installation     @relation(fields: [installationId], references: [id], onDelete: Cascade)
+  messages     GatewayMessage[]
+
+  @@index([installationId, status, lastMessageAt])
+  @@index([installationId, contact])
+}
+
+model GatewayMessage {
+  id             String        @id @default(cuid())
+  conversationId String
+  sender         GatewaySender
+  body           String
+  staffName      String?
+  createdAt      DateTime      @default(now())
+
+  conversation GatewayConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
 }
