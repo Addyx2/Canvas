@@ -27,7 +27,7 @@ export const MODULES: ModuleManifest[] = [
   {
     key: "gateway",
     name: "Gateway",
-    tagline: "One conversation layer for every channel, agent and person.",
+    tagline: "An AI receptionist that answers calls, texts and web chat, and takes every enquiry.",
     description:
       "Gateway is an AI receptionist for enquiries. It answers calls, texts and web chat, answers questions from your own information, takes down new enquiries and messages, and passes them to your team. It makes no arrangements itself. Anyone who may be in danger is told to call 999 and a person is alerted, and staff can take over at any time.",
     status: "pilot",

@@ -11,17 +11,17 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
         <div className="relative"><Wordmark dark /></div>
         <div className="relative max-w-md">
           <h1 className="font-display text-4xl font-bold leading-tight tracking-tight">
-            The console for <span className="text-brand-300">Persona</span> and Elements.
+            Answer every enquiry. <span className="text-brand-300">Reward every carer.</span>
           </h1>
           <p className="mt-4 text-base leading-relaxed text-white/70">
-            Bring Aultrum&apos;s AI and care modules into the systems you already run, and build custom modules on the same foundations.
+            Elements runs Gateway and Peak for your care organisation, on its own or inside the systems you already use. Now in open beta.
           </p>
           <ul className="mt-8 space-y-3">
             {MODULES.map((m) => (
               <li key={m.key} className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/5 p-4">
                 <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-brand-300" />
                 <div>
-                  <p className="text-sm font-semibold">{m.name} <span className="ml-1 text-xs font-medium text-white/50">{m.status === "pilot" ? "Pilot" : "Coming soon"}</span></p>
+                  <p className="text-sm font-semibold">{m.name} <span className="ml-1 text-xs font-medium text-white/50">{m.status === "pilot" ? "Beta" : "Planned"}</span></p>
                   <p className="mt-0.5 text-sm text-white/60">{m.tagline}</p>
                 </div>
               </li>

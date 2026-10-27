@@ -1,6 +1,6 @@
 import { PhoneCall, Trophy } from "lucide-react";
 
-import { CanvasMark } from "@/components/Logo";
+import { AppMark } from "@/components/Logo";
 import { GatewayInbox } from "@/components/embed/GatewayInbox";
 import { PeakScreen } from "@/components/embed/PeakScreen";
 import { prisma } from "@/lib/db";
@@ -15,7 +15,7 @@ function Problem({ message }: { message: string }) {
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
       <div className="max-w-sm text-center">
-        <CanvasMark className="mx-auto" />
+        <AppMark className="mx-auto" />
         <p className="mt-4 text-sm font-semibold text-slate-800">This module can&apos;t be shown</p>
         <p className="mt-1 text-sm text-slate-500">{message}</p>
       </div>

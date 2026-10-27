@@ -28,7 +28,7 @@ export default async function ModulePage({ params }: { params: Promise<{ key: st
       <PageHeader
         title={mod.name}
         description={mod.description}
-        action={<Badge tone={mod.status === "pilot" ? "brand" : "slate"}>{mod.status === "pilot" ? "Pilot" : "Planned"}</Badge>}
+        action={<Badge tone={mod.status === "pilot" ? "brand" : "slate"}>{mod.status === "pilot" ? "Beta" : "Planned"}</Badge>}
       />
 
       <div className="grid gap-4 lg:grid-cols-2">
