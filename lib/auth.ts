@@ -69,6 +69,8 @@ export function homeFor(role: string): string {
 export async function requireSignedIn(): Promise<SessionUser> {
   const user = await getSessionUser();
   if (!user) redirect("/login");
+  // Someone who signed up can't use Elements until they confirm their email.
+  if (!user.emailVerified) redirect("/verify-email");
   return user;
 }
 

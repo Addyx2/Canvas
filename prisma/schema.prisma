@@ -21,7 +21,7 @@ enum InstallationStatus {
 }
 
 enum EventDirection {
-  INBOUND  // a platform sent it to a module
+  INBOUND // a platform sent it to a module
   OUTBOUND // a module sent it to a platform
 }
 
@@ -52,10 +52,15 @@ model User {
   failedLoginCount Int       @default(0)
   lockedUntil      DateTime?
   lastLoginAt      DateTime?
+  /// False until someone who signed up opens the link emailed to them.
+  /// Defaults to true so accounts made before verification existed, and
+  /// people who join through an invite, are not locked out.
+  emailVerified    Boolean   @default(true)
   createdAt        DateTime  @default(now())
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   auditEvents  AuditEvent[]
+  authTokens   AuthToken[]
 }
 
 /// A product that streams Canvas modules into itself, e.g. Pleasant. It calls
@@ -104,11 +109,11 @@ model Installation {
   platform     Platform     @relation(fields: [platformId], references: [id], onDelete: Cascade)
   events       Event[]
 
-  peakMembers       PeakMember[]
-  peakEntries       PeakEntry[]
-  peakRewards       PeakReward[]
-  peakRedemptions   PeakRedemption[]
-  gatewayPeople     GatewayPerson[]
+  peakMembers          PeakMember[]
+  peakEntries          PeakEntry[]
+  peakRewards          PeakReward[]
+  peakRedemptions      PeakRedemption[]
+  gatewayPeople        GatewayPerson[]
   gatewayConversations GatewayConversation[]
 
   @@unique([platformId, moduleKey, tenantId])
@@ -146,7 +151,6 @@ model AuditEvent {
 
   @@index([organizationId, createdAt])
 }
-
 
 /// Secrets Canvas makes for itself on first start (the signing secret for
 /// sessions and embed tokens), so deploying needs no keys in settings.
@@ -265,7 +269,7 @@ enum GatewayChannel {
 }
 
 enum GatewayStatus {
-  WITH_AI     // Gateway's agent is answering
+  WITH_AI // Gateway's agent is answering
   NEEDS_PERSON // waiting for a member of staff
   WITH_PERSON // a member of staff has taken over
   CLOSED
@@ -387,4 +391,28 @@ model Invite {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([organizationId])
+}
+
+/// One-time links emailed to a user: confirming their email, or resetting
+/// their password. Only a hash of the token is stored.
+model AuthToken {
+  id        String    @id @default(cuid())
+  userId    String
+  /// "verify_email" | "reset_password"
+  kind      String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, kind])
+}
+
+/// Fixed-window counters for rate limits, keyed by action and who is acting.
+model RateLimit {
+  key     String   @id
+  count   Int
+  resetAt DateTime
 }

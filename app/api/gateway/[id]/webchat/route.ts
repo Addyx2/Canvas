@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { activeGateway } from "@/lib/gateway/channel";
 import { receiveMessage } from "@/lib/gateway/conversations";
 import { readGatewaySettings } from "@/lib/gateway/settings";
+import { allow, ipFrom, LIMITS } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -44,6 +45,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const { id } = await params;
   const installation = await chatInstallation(id);
   if (!installation) return Response.json({ error: "Chat isn't available" }, { status: 404 });
+  // Each message costs an AI turn, so one visitor can't run up the bill.
+  if (!(await allow(`webchat:${installation.id}:${ipFrom(request.headers)}`, LIMITS.webchat))) {
+    return Response.json({ error: "You've sent a lot of messages. Please wait a few minutes." }, { status: 429 });
+  }
   const body = z.object({ visitor, text: z.string().trim().min(1).max(2000), name: z.string().trim().max(100).optional() }).safeParse(await request.json().catch(() => null));
   if (!body.success) return Response.json({ error: "Write a message" }, { status: 400 });
   await receiveMessage({ installation, channel: "WEBCHAT", contact: `web:${body.data.visitor}`, text: body.data.text, contactName: body.data.name });
