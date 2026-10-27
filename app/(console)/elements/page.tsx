@@ -17,7 +17,7 @@ export default async function ModulesPage() {
             <Card className="h-full p-6 transition hover:border-slate-300">
               <div className="flex items-center justify-between">
                 <h2 className="font-display text-xl font-semibold">{m.name}</h2>
-                <Badge tone={m.status === "pilot" ? "brand" : "slate"}>{m.status === "pilot" ? "Pilot" : "Planned"}</Badge>
+                <Badge tone={m.status === "pilot" ? "brand" : "slate"}>{m.status === "pilot" ? "Beta" : "Planned"}</Badge>
               </div>
               <p className="mt-2 text-sm leading-relaxed text-slate-600">{m.description}</p>
               <p className="mt-4 text-xs text-slate-500">

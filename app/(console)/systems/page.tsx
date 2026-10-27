@@ -25,7 +25,7 @@ export default async function PlatformsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Connected systems"
-        description="Your own software, or an Aultrum platform such as Flowstate or Pleasant, that uses Persona and Elements. Each one gets a client ID and secret for the API, and a signing secret for the webhooks it receives."
+        description="Your own software, or an Aultrum platform such as Pleasant, that uses Elements. Each one gets a client ID and secret for the API, and a signing secret for the webhooks it receives."
       />
 
       {isAdmin && !pleasantConnected ? (
