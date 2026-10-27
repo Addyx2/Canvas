@@ -267,6 +267,10 @@ enum GatewayIntent {
   MESSAGE
   EMERGENCY
   OTHER
+  // No longer used: Gateway takes enquiries only. Kept so the deployed
+  // database's enum is only ever added to, never shrunk.
+  ABSENCE
+  COVER_REQUEST
 }
 
 enum GatewaySender {
