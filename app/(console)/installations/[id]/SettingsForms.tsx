@@ -8,12 +8,19 @@ import { addRewardAction, saveGatewaySettingsAction, savePeakSettingsAction, typ
 
 function Result({ state, saved = "Saved." }: { state: FormState; saved?: string }) {
   if (state.error) return <p role="alert" className="text-sm text-red-700">{state.error}</p>;
-  if (state.ok) return <p role="status" className="text-sm text-emerald-700">{saved}</p>;
+  if (state.ok) {
+    return (
+      <span className="space-y-1">
+        <p role="status" className="text-sm text-emerald-700">{saved}</p>
+        {state.note ? <p role={state.noteOk ? "status" : "alert"} className={`text-sm ${state.noteOk ? "text-emerald-700" : "text-amber-700"}`}>{state.note}</p> : null}
+      </span>
+    );
+  }
   return null;
 }
 
 export function GatewaySettingsForm(props: {
-  id: string; serviceName: string; tenantName: string; about: string; onCallPhone: string; webchat: boolean;
+  id: string; serviceName: string; tenantName: string; about: string; onCallPhone: string; webchat: boolean; alertEmails: string; urgentSms: boolean; standalone: boolean;
   accountSid: string; phoneNumber: string; hasToken: boolean;
 }) {
   const [state, action, pending] = useActionState(saveGatewaySettingsAction, {});
@@ -37,8 +44,19 @@ export function GatewaySettingsForm(props: {
       <label className="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" name="webchat" defaultChecked={props.webchat} className="h-4 w-4" />Web chat on your website</label>
 
       <fieldset className="space-y-4 rounded-xl border border-slate-200 p-4">
+        <legend className="px-1 text-sm font-semibold text-slate-800">Alerts</legend>
+        <label className={labelClass}>Email new enquiries, messages and handovers to
+          <input name="alertEmails" defaultValue={props.alertEmails} placeholder="office@example.co.uk, manager@example.co.uk" className={`${inputClass} mt-1`} />
+          <span className="mt-1 block text-xs font-normal text-slate-500">
+            {props.standalone ? "Leave empty to email everyone on your team." : "Leave empty if your system already shows Gateway's enquiries."} At most one email per conversation every ten minutes, except emergencies.
+          </span>
+        </label>
+        <label className="flex items-start gap-2 text-sm text-slate-700"><input type="checkbox" name="urgentSms" defaultChecked={props.urgentSms} className="mt-0.5 h-4 w-4" /><span>Text the on-call number straight away if someone may be in danger <span className="block text-xs text-slate-500">Needs Twilio and an on-call number.</span></span></label>
+      </fieldset>
+
+      <fieldset className="space-y-4 rounded-xl border border-slate-200 p-4">
         <legend className="px-1 text-sm font-semibold text-slate-800">Phone and text (Twilio)</legend>
-        <p className="text-xs text-slate-500">From your Twilio account. The auth token is encrypted and never shown again.</p>
+        <p className="text-xs text-slate-500">From your Twilio account. The auth token is encrypted and never shown again. When you save, Gateway connects the number for you: calls and texts to it come straight here.</p>
         <div className="grid gap-4 sm:grid-cols-3">
           <label className={labelClass}>Account SID<input name="accountSid" defaultValue={props.accountSid} placeholder="AC…" className={`${inputClass} mt-1`} autoComplete="off" /></label>
           <label className={labelClass}>Auth token<input name="authToken" type="password" placeholder={props.hasToken ? "Saved. Enter a new one to replace it" : ""} className={`${inputClass} mt-1`} autoComplete="new-password" /></label>

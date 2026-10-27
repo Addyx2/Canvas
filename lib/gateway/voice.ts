@@ -26,3 +26,16 @@ export function personNeeded(installation: Installation, conversation: GatewayCo
   void conversation;
   return twiml(`${intro}${say("A member of the team will call you back as soon as possible. Goodbye.")}<Hangup/>`);
 }
+
+/** After a turn: answer and listen again, put the caller through, or end the call. */
+export function respond(installation: Installation, conversation: GatewayConversation, reply: string | null): Response {
+  if (conversation.status === "NEEDS_PERSON" || conversation.status === "WITH_PERSON") return personNeeded(installation, conversation, reply);
+  if (conversation.status === "CLOSED") return twiml(`${say(reply ?? "Thank you for calling. Goodbye.")}<Hangup/>`);
+  return twiml(`${gather(installation, conversation.id, reply ?? "Is there anything else?")}${say("Thank you for calling. Goodbye.")}<Hangup/>`);
+}
+
+/** Keep the caller company while a slow turn finishes, then pick up its answer. */
+export function holdOn(installation: Installation, conversationId: string, attempt: number, phrase: string): Response {
+  const url = escapeXml(appUrl(`/api/gateway/${installation.id}/voice/wait?c=${encodeURIComponent(conversationId)}&n=${attempt}`));
+  return twiml(`${say(phrase)}<Redirect method="POST">${url}</Redirect>`);
+}

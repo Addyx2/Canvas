@@ -331,6 +331,9 @@ model GatewayConversation {
   followUp       Boolean        @default(false)
   followUpDoneAt DateTime?
   followUpBy     String?
+  /// When the team was last emailed about this conversation, so a busy
+  /// conversation sends one alert rather than one per message.
+  alertedAt      DateTime?
   lastMessageAt  DateTime       @default(now())
   createdAt      DateTime       @default(now())
 

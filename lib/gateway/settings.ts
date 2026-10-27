@@ -12,6 +12,10 @@ export const gatewaySettingsSchema = z.object({
   /** Who to put a call through to when a person is needed. E.164. */
   onCallPhone: z.string().trim().max(20).default(""),
   webchat: z.boolean().default(true),
+  /** Who is emailed about new enquiries, messages and handovers, comma separated. Empty: everyone on the team (on its own) or no one (inside another system, which gets events instead). */
+  alertEmails: z.string().trim().max(600).default(""),
+  /** Text the on-call number when someone may be in danger. */
+  urgentSms: z.boolean().default(true),
   twilio: z
     .object({
       accountSid: z.string().trim().max(64).default(""),

@@ -4,6 +4,7 @@ import type { GatewayChannel, GatewayConversation, Installation, Prisma } from "
 import { prisma } from "../db";
 import { emitEvent } from "../webhooks";
 import { aiAvailable, runAgentTurn, type ToolRunner } from "./agent";
+import { alertTeam } from "./alerts";
 import { findCaller, normalisePhone } from "./directory";
 import { EMERGENCY_REPLY, looksLikeEmergency } from "./emergency";
 import { readGatewaySettings, serviceNameOf, twilioCredentials } from "./settings";
@@ -73,7 +74,8 @@ function who(c: GatewayConversation) {
   return { conversationId: c.id, channel: c.channel.toLowerCase(), contact: c.contact, contactName: c.contactName, personId: c.personId };
 }
 
-async function handOver(c: GatewayConversation, reason: string, urgent: boolean) {
+async function handOver(c: GatewayConversation, reason: string, urgent: boolean, said?: string) {
+  alertTeam(c, { kind: urgent ? "emergency" : "handover", name: c.contactName, headline: reason, details: said });
   await prisma.gatewayConversation.update({
     where: { id: c.id },
     data: { status: "NEEDS_PERSON", handoverReason: reason, ...(urgent ? { intent: "EMERGENCY" } : {}) },
@@ -104,6 +106,7 @@ function toolRunner(c: GatewayConversation, state: { close?: string }): ToolRunn
       case "take_enquiry": {
         const i = input as { name: string; contact: string; organisation: string; topic: string; details: string };
         await prisma.gatewayConversation.update({ where: { id: c.id }, data: { intent: "ENQUIRY", contactName: c.contactName ?? i.name, summary: `Enquiry: ${i.topic}`, followUp: true, followUpDoneAt: null } });
+        alertTeam(c, { kind: "enquiry", name: i.name, headline: i.topic, details: i.details, reachOn: i.contact || null });
         await emitEvent(c.installationId, "gateway.enquiry.received", {
           ...who(c),
           name: i.name,
@@ -117,6 +120,7 @@ function toolRunner(c: GatewayConversation, state: { close?: string }): ToolRunn
       case "take_message": {
         const i = input as { name: string; contact: string; for_whom: string; message: string };
         await prisma.gatewayConversation.update({ where: { id: c.id }, data: { intent: "MESSAGE", contactName: c.contactName ?? i.name, summary: `Message${i.for_whom ? ` for ${i.for_whom}` : ""}`, followUp: true, followUpDoneAt: null } });
+        alertTeam(c, { kind: "message", name: i.name, headline: i.for_whom ? `For ${i.for_whom}` : "For the team", details: i.message, reachOn: i.contact || null });
         await emitEvent(c.installationId, "gateway.message.left", {
           ...who(c),
           name: i.name,
@@ -144,6 +148,7 @@ function toolRunner(c: GatewayConversation, state: { close?: string }): ToolRunn
 async function ruleTurn(c: GatewayConversation, text: string, serviceName: string): Promise<string> {
   const name = c.contactName?.split(" ")[0];
   await prisma.gatewayConversation.update({ where: { id: c.id }, data: { intent: "MESSAGE", summary: "Message", followUp: true, followUpDoneAt: null } });
+  alertTeam(c, { kind: "message", name: c.contactName, headline: "For the team", details: text.slice(0, 800) });
   await emitEvent(c.installationId, "gateway.message.left", {
     ...who(c),
     name: c.contactName,
@@ -170,7 +175,7 @@ export async function receiveMessage(input: Incoming): Promise<Outcome> {
   await addMessage(conversation.id, "CONTACT", text);
 
   if (looksLikeEmergency(text) && conversation.intent !== "EMERGENCY") {
-    await handOver(conversation, `Possible emergency: “${text.slice(0, 200)}”`, true);
+    await handOver(conversation, `Possible emergency: “${text.slice(0, 200)}”`, true, text.slice(0, 800));
     await addMessage(conversation.id, "AGENT", EMERGENCY_REPLY);
     return { conversation: await prisma.gatewayConversation.findUniqueOrThrow({ where: { id: conversation.id } }), reply: EMERGENCY_REPLY };
   }

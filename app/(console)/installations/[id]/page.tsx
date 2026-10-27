@@ -31,7 +31,7 @@ export default async function InstallationSettingsPage({ params }: { params: Pro
   const { id } = await params;
   const installation = await prisma.installation.findFirst({
     where: { id, organizationId: user.organizationId },
-    include: { platform: { select: { name: true } } },
+    include: { platform: { select: { name: true, builtIn: true } } },
   });
   const mod = installation ? findModule(installation.moduleKey) : undefined;
   if (!installation || !mod) notFound();
@@ -41,13 +41,13 @@ export default async function InstallationSettingsPage({ params }: { params: Pro
     <div className="space-y-6">
       <Link href="/installations" className="text-sm font-medium text-brand-700 hover:text-brand-800">← Installations</Link>
       <PageHeader title={`${mod.name} for ${installation.tenantName}`} description={`In ${installation.platform.name}. ${mod.tagline}`} />
-      {installation.moduleKey === "gateway" ? <GatewaySettings installation={installation} isAdmin={isAdmin} /> : null}
+      {installation.moduleKey === "gateway" ? <GatewaySettings installation={installation} standalone={installation.platform.builtIn} isAdmin={isAdmin} /> : null}
       {installation.moduleKey === "peak" ? <PeakSettings installationId={installation.id} settings={installation.settings} isAdmin={isAdmin} /> : null}
     </div>
   );
 }
 
-function GatewaySettings({ installation, isAdmin }: { installation: { id: string; tenantName: string; settings: unknown }; isAdmin: boolean }) {
+function GatewaySettings({ installation, standalone, isAdmin }: { installation: { id: string; tenantName: string; settings: unknown }; standalone: boolean; isAdmin: boolean }) {
   const s = readGatewaySettings(installation.settings);
   const chatUrl = appUrl(`/chat/${installation.id}`);
   return (
@@ -72,6 +72,9 @@ function GatewaySettings({ installation, isAdmin }: { installation: { id: string
             about={s.about}
             onCallPhone={s.onCallPhone}
             webchat={s.webchat}
+            alertEmails={s.alertEmails}
+            urgentSms={s.urgentSms}
+            standalone={standalone}
             accountSid={s.twilio.accountSid}
             phoneNumber={s.twilio.phoneNumber}
             hasToken={Boolean(s.twilio.authTokenSealed)}
@@ -82,15 +85,16 @@ function GatewaySettings({ installation, isAdmin }: { installation: { id: string
       </Card>
       <Card className="space-y-4 p-5">
         <h2 className="font-display text-lg font-semibold">Connect your channels</h2>
-        <p className="text-sm text-slate-600">In Twilio, open your phone number and set these as the webhooks (HTTP POST).</p>
+        <p className="text-sm text-slate-600">Saving your Twilio details above connects your number automatically. If you&apos;d rather do it yourself, set these as the number&apos;s webhooks in Twilio (HTTP POST).</p>
         <div className="grid gap-4 md:grid-cols-2">
           <Copy label="A message comes in" value={appUrl(`/api/gateway/${installation.id}/sms`)} />
           <Copy label="A call comes in" value={appUrl(`/api/gateway/${installation.id}/voice`)} />
         </div>
         {s.webchat ? (
           <>
-            <p className="pt-2 text-sm text-slate-600">To add web chat to your website, paste this where it should appear, or <a className="font-medium text-brand-700" href={chatUrl} target="_blank" rel="noreferrer">open the chat</a> to try it.</p>
-            <Copy label="Web chat" value={`<iframe src="${chatUrl}" title="Chat with us" style="width:100%;max-width:400px;height:560px;border:1px solid #e2e8f0;border-radius:12px"></iframe>`} />
+            <p className="pt-2 text-sm text-slate-600">To add a chat button to your website, paste this just before <code>&lt;/body&gt;</code>, or ask whoever runs your website to. <a className="font-medium text-brand-700" href={chatUrl} target="_blank" rel="noreferrer">Open the chat</a> to try it first.</p>
+            <Copy label="Chat button" value={`<script src="${appUrl("/gateway-chat.js")}" data-gateway="${installation.id}" async></script>`} />
+            <Copy label="Or show the chat inside a page" value={`<iframe src="${chatUrl}" title="Chat with us" style="width:100%;max-width:400px;height:560px;border:1px solid #e2e8f0;border-radius:12px"></iframe>`} />
           </>
         ) : null}
       </Card>
