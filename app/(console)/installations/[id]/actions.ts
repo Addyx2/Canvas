@@ -7,14 +7,20 @@ import { z } from "zod";
 import { recordAudit } from "@/lib/audit";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { parseAlertEmails } from "@/lib/gateway/alerts";
 import { normalisePhone } from "@/lib/gateway/directory";
-import { gatewaySettingsSchema, readGatewaySettings } from "@/lib/gateway/settings";
+import { gatewaySettingsSchema, readGatewaySettings, twilioCredentials } from "@/lib/gateway/settings";
+import { connectNumber } from "@/lib/gateway/twilio";
 import { peakSettingsSchema } from "@/lib/peak/settings";
 import { seal } from "@/lib/seal";
+import { appUrl } from "@/lib/utils";
 
 export interface FormState {
   ok?: boolean;
   error?: string;
+  /** Saved, with something to report (e.g. the Twilio number was connected, or couldn't be). */
+  note?: string;
+  noteOk?: boolean;
 }
 
 async function ownedInstallation(organizationId: string, id: string, moduleKey: string) {
@@ -43,8 +49,14 @@ export async function saveGatewaySettingsAction(_prev: FormState, formData: Form
   const newToken = String(formData.get("authToken") ?? "").trim();
   if (newToken && !/^[0-9a-f]{32}$/i.test(newToken)) return { error: "A Twilio auth token has 32 letters and numbers." };
 
+  const alertRaw = String(formData.get("alertEmails") ?? "").trim();
+  const alertEmails = parseAlertEmails(alertRaw);
+  if (alertRaw && alertEmails.length === 0) return { error: "Enter alert emails separated by commas, e.g. office@example.co.uk, manager@example.co.uk." };
+
   const parsed = gatewaySettingsSchema.safeParse({
     serviceName: String(formData.get("serviceName") ?? ""),
+    alertEmails: alertEmails.join(", "),
+    urgentSms: formData.get("urgentSms") === "on",
     about: String(formData.get("about") ?? ""),
     onCallPhone: onCall,
     webchat: formData.get("webchat") === "on",
@@ -58,7 +70,10 @@ export async function saveGatewaySettingsAction(_prev: FormState, formData: Form
   await prisma.installation.update({ where: { id: installation.id }, data: { settings: merged(installation.settings, "gateway", parsed.data) } });
   await recordAudit(user, { action: "gateway.settings", summary: `Updated Gateway settings for ${installation.tenantName}${newToken ? " (new Twilio token)" : ""}` });
   revalidatePath(`/installations/${installation.id}`);
-  return { ok: true };
+  const creds = await twilioCredentials(parsed.data);
+  if (!creds) return { ok: true };
+  const connected = await connectNumber(creds, { voice: appUrl(`/api/gateway/${installation.id}/voice`), sms: appUrl(`/api/gateway/${installation.id}/sms`) });
+  return { ok: true, note: connected.message, noteOk: connected.ok };
 }
 
 export async function savePeakSettingsAction(_prev: FormState, formData: FormData): Promise<FormState> {

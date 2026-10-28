@@ -15,7 +15,7 @@ const nextConfig: NextConfig = {
     return [
       // Console and API: never framed.
       {
-        source: "/((?!embed/).*)",
+        source: "/((?!embed/|chat/).*)",
         headers: [
           ...baseHeaders,
           { key: "X-Frame-Options", value: "DENY" },
@@ -28,6 +28,11 @@ const nextConfig: NextConfig = {
       // Module screens: framed only by the platform named in the embed token
       // (middleware sets frame-ancestors per request).
       { source: "/embed/:path*", headers: baseHeaders },
+      // Gateway's web chat goes on customers' own websites, so any site may frame it.
+      {
+        source: "/chat/:path*",
+        headers: [...baseHeaders, { key: "Content-Security-Policy", value: "frame-ancestors *; base-uri 'self'; form-action 'self'; object-src 'none'" }],
+      },
     ];
   },
 };

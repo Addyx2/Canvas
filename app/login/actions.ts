@@ -7,6 +7,7 @@ import { recordAudit } from "@/lib/audit";
 import { homeFor, requireSignedIn, setSessionCookie, verifyPassword } from "@/lib/auth";
 import { LOCKOUT_MINUTES, MAX_FAILED_LOGINS, SESSION_COOKIE } from "@/lib/constants";
 import { prisma } from "@/lib/db";
+import { allow, clientIp, LIMITS, TOO_MANY } from "@/lib/rate-limit";
 import { safeNextPath } from "@/lib/utils";
 import { loginSchema } from "@/lib/validation";
 
@@ -24,6 +25,7 @@ export async function loginAction(_prev: LoginState, formData: FormData): Promis
   const fail = (error: string): LoginState => ({ error, email });
   const parsed = loginSchema.safeParse({ email, password: formData.get("password") });
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Check your details and try again");
+  if (!(await allow(`login:${await clientIp()}`, LIMITS.login))) return fail(TOO_MANY);
 
   const user = await prisma.user.findUnique({ where: { email: parsed.data.email.toLowerCase() } });
   if (!user) {
@@ -56,6 +58,7 @@ export async function loginAction(_prev: LoginState, formData: FormData): Promis
   });
   await recordAudit(user, { action: "auth.login", summary: "Signed in" });
   await setSessionCookie(user);
+  if (!user.emailVerified) redirect("/verify-email");
   redirect(user.role === "CARER" ? homeFor(user.role) : (safeNextPath(String(formData.get("next") ?? "")) ?? homeFor(user.role)));
 }
 

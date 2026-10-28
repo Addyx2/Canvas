@@ -2,6 +2,7 @@ import { LogOut } from "lucide-react";
 
 import { Wordmark } from "@/components/Logo";
 import { requireUser } from "@/lib/auth";
+import { isAultrumStaff } from "@/lib/staff";
 
 import { logoutAction } from "../login/actions";
 import { ConsoleNav } from "./ConsoleNav";
@@ -15,7 +16,7 @@ export default async function ConsoleLayout({ children }: { children: React.Reac
           <Wordmark />
         </div>
         <div className="px-3 pb-3 lg:flex-1">
-          <ConsoleNav isAdmin={user.role === "ADMIN"} />
+          <ConsoleNav isAdmin={user.role === "ADMIN"} isStaff={await isAultrumStaff(user)} />
         </div>
         <div className="hidden border-t border-slate-200 p-4 lg:block">
           <p className="truncate text-sm font-medium text-slate-900">{user.name}</p>

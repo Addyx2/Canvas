@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Activity, Award, Blocks, Code2, LayoutGrid, MessagesSquare, Plug, Puzzle, UserCog, Users } from "lucide-react";
+import { Activity, Award, Blocks, Code2, LayoutGrid, MessagesSquare, Plug, Puzzle, Tag, UserCog, Users } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -29,11 +29,14 @@ const GROUPS = [
   },
 ];
 
-export function ConsoleNav({ isAdmin }: { isAdmin: boolean }) {
+const STAFF_GROUP = { label: "Aultrum", items: [{ href: "/aultrum/offers", label: "Partner offers", icon: Tag }] };
+
+export function ConsoleNav({ isAdmin, isStaff = false }: { isAdmin: boolean; isStaff?: boolean }) {
   const pathname = usePathname();
+  const groups = isStaff ? [...GROUPS, STAFF_GROUP] : GROUPS;
   return (
     <nav aria-label="Main" className="flex gap-1 overflow-x-auto lg:flex-col lg:gap-5">
-      {GROUPS.map((group) => (
+      {groups.map((group) => (
         <div key={group.label} className="flex gap-1 lg:flex-col">
           <p className="hidden px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-slate-400 lg:block">{group.label}</p>
           {group.items.filter((i) => isAdmin || !("adminOnly" in i)).map(({ href, label, icon: Icon }) => {

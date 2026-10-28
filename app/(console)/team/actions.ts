@@ -9,6 +9,7 @@ import { recordAudit } from "@/lib/audit";
 import { requireAdmin } from "@/lib/auth";
 import { hashSecret } from "@/lib/credentials";
 import { prisma } from "@/lib/db";
+import { sendEmail } from "@/lib/email";
 import { appUrl } from "@/lib/utils";
 
 export interface InviteFormState {
@@ -60,7 +61,17 @@ export async function inviteAction(_prev: InviteFormState, formData: FormData): 
   });
   await recordAudit(user, { action: "team.invite", summary: `Invited ${name} (${email}) as ${role.toLowerCase()}` });
   revalidatePath("/team");
-  return { ok: `Send ${name} this link. It works once and expires in ${INVITE_DAYS} days.`, link: appUrl(`/invite/${token}`) };
+  const link = appUrl(`/invite/${token}`);
+  const what = role === "CARER" ? "see your Peak points and ask for rewards" : "run Gateway and Peak with the team";
+  const sent = await sendEmail({
+    to: email,
+    subject: `${user.name} invited you to ${user.organization.name} on Aultrum Elements`,
+    text: `Hi ${name.split(" ")[0]},\n\n${user.name} invited you to ${user.organization.name} on Aultrum Elements, where you can ${what}.\n\nOpen this link to choose a password and join:\n\n${link}\n\nThe link works once and lasts ${INVITE_DAYS} days.`,
+  });
+  return {
+    ok: sent ? `Invite emailed to ${email}. You can also send them this link; it works once and expires in ${INVITE_DAYS} days.` : `Send ${name} this link. It works once and expires in ${INVITE_DAYS} days.`,
+    link,
+  };
 }
 
 export async function cancelInviteAction(formData: FormData): Promise<void> {

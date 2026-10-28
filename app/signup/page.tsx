@@ -17,6 +17,9 @@ export default async function SignupPage() {
         <>
           <p className="mt-1 text-sm text-slate-500">You&apos;ll be its first admin.</p>
           <div className="mt-8"><SignupForm /></div>
+          <p className="mt-4 text-xs leading-relaxed text-slate-500">
+            By creating an organisation you agree to the <a href="https://aultrum.co.uk/terms/" className="underline hover:text-slate-800">terms of service</a> and <a href="https://aultrum.co.uk/dpa/" className="underline hover:text-slate-800">data processing agreement</a>, and confirm you&apos;ve read the <a href="https://aultrum.co.uk/privacy/" className="underline hover:text-slate-800">privacy policy</a>.
+          </p>
         </>
       ) : (
         <p className="mt-3 text-sm text-slate-600">Elements is by invitation for now. Ask your admin to invite you.</p>

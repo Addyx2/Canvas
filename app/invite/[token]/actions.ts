@@ -7,6 +7,7 @@ import { recordAudit } from "@/lib/audit";
 import { hashPassword, homeFor, setSessionCookie } from "@/lib/auth";
 import { hashSecret } from "@/lib/credentials";
 import { prisma } from "@/lib/db";
+import { allow, clientIp, LIMITS, TOO_MANY } from "@/lib/rate-limit";
 
 export interface AcceptState {
   error?: string;
@@ -18,6 +19,7 @@ export async function acceptInviteAction(_prev: AcceptState, formData: FormData)
   const token = String(formData.get("token") ?? "");
   const parsed = passwordSchema.safeParse(String(formData.get("password") ?? ""));
   if (!parsed.success) return { error: parsed.error.issues[0]?.message };
+  if (!(await allow(`token:${await clientIp()}`, LIMITS.tokenUse))) return { error: TOO_MANY };
 
   const invite = await prisma.invite.findUnique({ where: { tokenHash: hashSecret(token) } });
   if (!invite || invite.acceptedAt || invite.expiresAt < new Date()) return { error: "This invite has expired or was already used. Ask for a new one." };
