@@ -264,14 +264,27 @@ function Member({ data, api, refresh }: { data: MemberData; api: Api; refresh: (
 
   return (
     <div className="space-y-5">
-      <section className="grid gap-3 sm:grid-cols-3">
-        <div className={`${card} p-4`}><p className="text-xs text-slate-500">Your points</p><p className="mt-1 font-display text-3xl font-bold tabular-nums">{data.me.balance.toLocaleString("en-GB")}</p></div>
-        <div className={`${card} p-4`}><p className="text-xs text-slate-500">Worth</p><p className="mt-1 font-display text-3xl font-bold tabular-nums">{pounds(data.me.valuePence)}</p></div>
-        <div className={`${card} p-4`}><p className="flex items-center gap-1 text-xs text-slate-500"><Flame className="h-3.5 w-3.5 text-amber-500" />On time in a row</p><p className="mt-1 font-display text-3xl font-bold tabular-nums">{data.me.streak}</p></div>
+      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-950 via-slate-900 to-brand-900 p-5 text-white shadow-lg">
+        <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-brand-500/20 blur-2xl" />
+        <p className="font-mono text-[11px] uppercase tracking-wider text-white/50">Peak · {data.tenantName}</p>
+        <p className="mt-3 font-mono text-4xl font-bold tabular-nums">{pounds(data.me.valuePence)}</p>
+        <p className="mt-1 font-mono text-sm text-white/70">{data.me.balance.toLocaleString("en-GB")} points</p>
+        <a href="#rewards" className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-white/90"><Gift className="h-4 w-4" />Use your points</a>
+      </section>
+      <section className="flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700"><Flame className="h-5 w-5" /></span>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-amber-950">{data.me.streak > 0 ? `${data.me.streak} on-time clock-in${data.me.streak === 1 ? "" : "s"} in a row` : "Start an on-time streak"}</p>
+          <p className="text-xs text-amber-800">
+            {data.settings.streakEvery > 0
+              ? `Every ${data.settings.streakEvery} in a row earns a ${data.settings.streakBonus}-point bonus${data.me.streak > 0 ? `. ${data.settings.streakEvery - (data.me.streak % data.settings.streakEvery)} to go.` : "."}`
+              : `Clocking in on time earns ${data.settings.onTime} points.`}
+          </p>
+        </div>
       </section>
       <Notice message={message?.text ?? null} tone={message?.tone} />
 
-      <section className={card}>
+      <section id="rewards" className={`${card} scroll-mt-4`}>
         <h2 className="flex items-center gap-2 border-b border-slate-100 px-4 py-3 text-sm font-semibold"><Gift className="h-4 w-4 text-brand-600" />Rewards</h2>
         <ul className="divide-y divide-slate-100">
           {data.rewards.map((r) => {
@@ -307,7 +320,7 @@ function Member({ data, api, refresh }: { data: MemberData; api: Api; refresh: (
       ) : null}
 
       <section className={card}>
-        <h2 className="border-b border-slate-100 px-4 py-3 text-sm font-semibold">History</h2>
+        <h2 className="border-b border-slate-100 px-4 py-3 text-sm font-semibold">Latest activity</h2>
         {data.entries.length === 0 ? <p className="p-6 text-sm text-slate-500">Complete shifts and clock in on time to start earning.</p> : (
           <ul className="divide-y divide-slate-100">
             {data.entries.map((e) => (
@@ -368,7 +381,7 @@ function Offers({ offers, api, refresh }: { offers: Offer[]; api: Api; refresh: 
 
   return (
     <section className={card}>
-      <h2 className="flex items-center gap-2 border-b border-slate-100 px-4 py-3 text-sm font-semibold"><Tag className="h-4 w-4 text-brand-600" />Offers for you</h2>
+      <h2 className="flex items-center gap-2 border-b border-slate-100 px-4 py-3 text-sm font-semibold"><Tag className="h-4 w-4 text-brand-600" />Perks for you</h2>
       <p className="px-4 pt-3 text-xs text-slate-500">From Aultrum&apos;s partners, for everyone on Peak. They don&apos;t use your points.</p>
       {error ? <div className="px-4 pt-3"><Notice message={error} /></div> : null}
       <ul className="grid gap-3 p-4 sm:grid-cols-2">
