@@ -250,6 +250,10 @@ model PeakRedemption {
   points         Int
   /// CASH_OUT only: what the platform pays through payroll.
   amountPence    Int?
+  /// CASH_OUT only, when no connected system pays it: when a manager marked
+  /// it as paid through their own payroll, and who.
+  paidAt         DateTime?
+  paidBy         String?
   status         PeakRedemptionStatus @default(PENDING)
   decidedBy      String?
   decidedAt      DateTime?
