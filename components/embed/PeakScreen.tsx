@@ -1,8 +1,8 @@
 "use client";
 
 import { formatDistanceToNowStrict } from "date-fns";
-import { Award, Check, Clock, Copy, ExternalLink, Flame, Gift, GraduationCap, Heart, HeartHandshake, Medal, Moon, ShieldCheck, Sparkles, Tag, Trophy, Users, X, type LucideIcon } from "lucide-react";
-import { useState } from "react";
+import { Award, Banknote, Check, Clock, Copy, Download, ExternalLink, Flame, Gift, GraduationCap, Heart, HeartHandshake, Medal, Moon, ShieldCheck, Sparkles, Tag, Trophy, Users, X, type LucideIcon } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 
 import { usePolling, useEmbedApi } from "./useEmbedApi";
 
@@ -94,6 +94,8 @@ function Manager({ data, api, refresh }: { data: ManagerData; api: Api; refresh:
   return (
     <div className="space-y-5">
       <Notice message={message?.text ?? null} tone={message?.tone} />
+
+      {data.paidBySystem ? null : <CashOuts api={api} version={data.approved.map((r) => r.id).join()} />}
 
       {data.pending.length > 0 ? (
         <section className={card}>
@@ -219,7 +221,7 @@ function Manager({ data, api, refresh }: { data: ManagerData; api: Api; refresh:
           {data.approved.length > 0 ? (
             <section className={card}>
               <h2 className="border-b border-slate-100 px-4 py-3 text-sm font-semibold">Recently approved</h2>
-              <p className="px-4 pt-3 text-xs text-slate-500">{data.paidBySystem ? "Cash-outs were sent to your system to pay through payroll." : "Pay cash-outs yourself, and give perks by hand: Peak isn't connected to a payroll."}</p>
+              <p className="px-4 pt-3 text-xs text-slate-500">{data.paidBySystem ? "Cash-outs were sent to your system to pay through payroll." : "Cash-outs appear under Cash-outs to pay. Give perks by hand."}</p>
               <ul className="divide-y divide-slate-100">
                 {data.approved.map((r) => (
                   <li key={r.id} className="flex items-start justify-between gap-3 px-4 py-2.5 text-sm">
@@ -396,6 +398,103 @@ function Offers({ offers, api, refresh }: { offers: Offer[]; api: Api; refresh: 
           </li>
         ))}
       </ul>
+    </section>
+  );
+}
+
+interface CashOutRow { id: string; name: string; email: string | null; amountPence: number; points: number; reward: string; approvedAt: string | null; approvedBy: string | null; paidAt: string | null; paidBy: string | null }
+interface CashOutData { unpaid: CashOutRow[]; paid: CashOutRow[]; totalPence: number; csv: string }
+
+/** Approved cash-outs the organisation pays through its own payroll. */
+function CashOuts({ api, version }: { api: Api; version: string }) {
+  const [data, setData] = useState<CashOutData | null>(null);
+  const [chosen, setChosen] = useState<Set<string>>(new Set());
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<{ text: string; tone: "red" | "green" } | null>(null);
+  const [showPaid, setShowPaid] = useState(false);
+
+  const load = useCallback(async () => {
+    const next = await api<CashOutData>("/api/embed/peak/cashouts");
+    setData(next);
+    setChosen(new Set(next.unpaid.map((r) => r.id)));
+  }, [api]);
+  // Reload whenever a reward is approved.
+  useEffect(() => { void load().catch(() => undefined); }, [load, version]);
+
+  if (!data || (data.unpaid.length === 0 && data.paid.length === 0)) return null;
+  const selected = data.unpaid.filter((r) => chosen.has(r.id));
+  const selectedPence = selected.reduce((n, r) => n + r.amountPence, 0);
+
+  function download() {
+    const url = URL.createObjectURL(new Blob([data!.csv], { type: "text/csv;charset=utf-8" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `peak-cash-outs-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function markPaid() {
+    if (selected.length === 0) return;
+    if (!window.confirm(`Mark ${selected.length} cash-out${selected.length === 1 ? "" : "s"} (${pounds(selectedPence)}) as paid? Only do this once they've gone through payroll.`)) return;
+    setBusy(true);
+    setMessage(null);
+    try {
+      const res = await api<{ count: number }>("/api/embed/peak/cashouts", { ids: selected.map((r) => r.id) });
+      setMessage({ text: `Marked ${res.count} as paid.`, tone: "green" });
+      await load();
+    } catch (e) {
+      setMessage({ text: e instanceof Error ? e.message : "That didn't work", tone: "red" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const toggle = (id: string) => setChosen((prev) => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
+
+  return (
+    <section className={card}>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
+        <h2 className="flex items-center gap-2 text-sm font-semibold"><Banknote className="h-4 w-4 text-brand-600" />Cash-outs to pay{data.unpaid.length > 0 ? <span className="rounded-full bg-amber-100 px-2 text-xs text-amber-800">{data.unpaid.length} · {pounds(data.totalPence)}</span> : null}</h2>
+        {data.unpaid.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className={`${btn} border border-slate-300 text-slate-700 hover:bg-slate-50`} onClick={download}><Download className="h-4 w-4" />Download for payroll</button>
+            <button type="button" className={`${btn} bg-ink text-white hover:bg-slate-800`} disabled={busy || selected.length === 0} onClick={markPaid}><Check className="h-4 w-4" />Mark {selected.length === data.unpaid.length ? "all" : selected.length} paid</button>
+          </div>
+        ) : null}
+      </div>
+      <p className="px-4 pt-3 text-xs text-slate-500">Cash-outs are earnings: pay them through your payroll so tax and National Insurance are taken, then mark them paid here.</p>
+      {message ? <div className="px-4 pt-3"><Notice message={message.text} tone={message.tone} /></div> : null}
+      {data.unpaid.length === 0 ? (
+        <p className="px-4 py-4 text-sm text-slate-500">Nothing to pay. Approved cash-outs will appear here.</p>
+      ) : (
+        <ul className="divide-y divide-slate-100">
+          {data.unpaid.map((r) => (
+            <li key={r.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
+              <label className="flex min-w-0 cursor-pointer items-center gap-3">
+                <input type="checkbox" checked={chosen.has(r.id)} onChange={() => toggle(r.id)} className="h-4 w-4" />
+                <span className="min-w-0"><span className="block truncate text-slate-800">{r.name}: {r.reward}</span><span className="text-xs text-slate-500">Approved {r.approvedAt ? ago(r.approvedAt) : ""}{r.approvedBy ? ` by ${r.approvedBy}` : ""}{r.email ? "" : " · no email in People"}</span></span>
+              </label>
+              <span className="tabular-nums font-semibold text-slate-800">{pounds(r.amountPence)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {data.paid.length > 0 ? (
+        <div className="border-t border-slate-100 px-4 py-2.5">
+          <button type="button" className="text-xs font-medium text-slate-500 hover:text-slate-800" onClick={() => setShowPaid((v) => !v)}>{showPaid ? "Hide" : "Show"} recently paid ({data.paid.length})</button>
+          {showPaid ? (
+            <ul className="mt-2 space-y-1.5">
+              {data.paid.map((r) => (
+                <li key={r.id} className="flex items-center justify-between gap-3 text-xs text-slate-600">
+                  <span className="min-w-0 truncate">{r.name}: {r.reward} · paid {r.paidAt ? ago(r.paidAt) : ""}{r.paidBy ? ` by ${r.paidBy}` : ""}</span>
+                  <span className="tabular-nums">{pounds(r.amountPence)}</span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
     </section>
   );
 }
