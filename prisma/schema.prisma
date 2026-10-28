@@ -113,6 +113,7 @@ model Installation {
   peakEntries          PeakEntry[]
   peakRewards          PeakReward[]
   peakRedemptions      PeakRedemption[]
+  peakBadges           PeakBadge[]
   gatewayPeople        GatewayPerson[]
   gatewayConversations GatewayConversation[]
 
@@ -195,9 +196,11 @@ model PeakMember {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  installation Installation     @relation(fields: [installationId], references: [id], onDelete: Cascade)
+  installation Installation        @relation(fields: [installationId], references: [id], onDelete: Cascade)
   entries      PeakEntry[]
   redemptions  PeakRedemption[]
+  badges       PeakBadge[]
+  offerClaims  PartnerOfferClaim[]
 
   @@unique([installationId, personId])
 }
@@ -418,4 +421,61 @@ model RateLimit {
   key     String   @id
   count   Int
   resetAt DateTime
+}
+
+/// Recognition a manager gives someone in Peak: a badge with a note, and
+/// sometimes bonus points (recorded separately as an AWARD entry).
+model PeakBadge {
+  id             String   @id @default(cuid())
+  installationId String
+  memberId       String
+  /// A key from lib/peak/badges.ts, e.g. "kindness".
+  badge          String
+  note           String
+  byName         String
+  points         Int      @default(0)
+  createdAt      DateTime @default(now())
+
+  installation Installation @relation(fields: [installationId], references: [id], onDelete: Cascade)
+  member       PeakMember   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId, createdAt])
+  @@index([installationId, createdAt])
+}
+
+/// An offer from an Aultrum partner that every carer on Peak can use, such as
+/// a discount on training. Managed by Aultrum, not by each organisation.
+model PartnerOffer {
+  id          String    @id @default(cuid())
+  partner     String
+  title       String
+  description String    @default("")
+  /// training | wellbeing | money | shopping | other
+  category    String    @default("other")
+  /// Shown as the headline, e.g. "20% off".
+  headline    String
+  /// A discount code to show once someone claims the offer.
+  code        String?
+  /// Where to use it.
+  url         String?
+  active      Boolean   @default(true)
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  claims PartnerOfferClaim[]
+}
+
+/// Someone opened an offer. Only counts are shared with partners.
+model PartnerOfferClaim {
+  id             String   @id @default(cuid())
+  offerId        String
+  installationId String
+  memberId       String
+  createdAt      DateTime @default(now())
+
+  offer  PartnerOffer @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  member PeakMember   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([offerId, memberId])
 }

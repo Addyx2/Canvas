@@ -1,7 +1,7 @@
 "use client";
 
 import { formatDistanceToNowStrict } from "date-fns";
-import { Award, Check, Flame, Gift, Heart, Trophy, X } from "lucide-react";
+import { Award, Check, Clock, Copy, ExternalLink, Flame, Gift, GraduationCap, Heart, HeartHandshake, Medal, Moon, ShieldCheck, Sparkles, Tag, Trophy, Users, X, type LucideIcon } from "lucide-react";
 import { useState } from "react";
 
 import { usePolling, useEmbedApi } from "./useEmbedApi";
@@ -10,19 +10,38 @@ type Kind = "SHIFT" | "ON_TIME" | "STREAK" | "PRAISE" | "AWARD" | "REDEMPTION" |
 interface Entry { id: string; kind: Kind; points: number; reason: string; byName: string | null; createdAt: string; member?: { name: string } }
 interface Reward { id: string; name: string; description: string; kind: "CASH_OUT" | "PERK"; cost: number }
 interface Settings { pointValuePence: number; praise: number; shift: number; onTime: number; streakEvery: number; streakBonus: number }
+interface Badge { id: string; badge: string; name: string; note: string; byName: string; points: number; createdAt: string; member?: { name: string } }
+interface BadgeType { key: string; name: string; meaning: string }
+interface Offer { id: string; partner: string; title: string; description: string; category: string; headline: string; expiresAt: string | null; claimed: boolean; code?: string | null; url?: string | null }
+
+const BADGE_ICON: Record<string, LucideIcon> = {
+  above_and_beyond: Sparkles, kindness: HeartHandshake, always_there: Clock, team_player: Users,
+  night_hero: Moon, safe_hands: ShieldCheck, learning: GraduationCap, family_praise: Heart,
+};
+const CATEGORY: Record<string, string> = { training: "Training", wellbeing: "Wellbeing", money: "Money", shopping: "Shopping", other: "Other" };
+
+function BadgeIcon({ badge, className = "h-5 w-5" }: { badge: string; className?: string }) {
+  const Icon = BADGE_ICON[badge] ?? Medal;
+  return <Icon className={className} aria-hidden="true" />;
+}
+
 interface ManagerData {
   view: "manager"; tenantName: string; settings: Settings; rewards: Reward[];
-  members: { id: string; personId: string; name: string; streak: number; balance: number }[];
+  members: { id: string; personId: string; name: string; streak: number; balance: number; badges: number }[];
   pending: { id: string; rewardName: string; kind: string; points: number; amountPence: number | null; createdAt: string; member: { name: string } }[];
   recent: Entry[];
   approved: { id: string; rewardName: string; kind: "CASH_OUT" | "PERK"; amountPence: number | null; decidedAt: string; decidedBy: string | null; member: { name: string } }[];
   paidBySystem: boolean;
+  badges: Badge[];
+  badgeTypes: BadgeType[];
 }
 interface MemberData {
   view: "member"; tenantName: string; settings: Settings; rewards: Reward[];
   me: { name: string; balance: number; streak: number; valuePence: number };
   entries: Entry[];
   redemptions: { id: string; rewardName: string; points: number; amountPence: number | null; status: "PENDING" | "APPROVED" | "DECLINED"; createdAt: string; note: string | null }[];
+  badges: Badge[];
+  offers: Offer[];
 }
 
 const pounds = (pence: number) => `£${(pence / 100).toFixed(2).replace(/\.00$/, "")}`;
@@ -51,7 +70,8 @@ type Api = ReturnType<typeof useEmbedApi>;
 function Manager({ data, api, refresh }: { data: ManagerData; api: Api; refresh: () => Promise<void> }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<{ text: string; tone: "red" | "green" } | null>(null);
-  const [giving, setGiving] = useState<{ memberId: string; kind: "PRAISE" | "AWARD" } | null>(null);
+  const [giving, setGiving] = useState<{ memberId: string; kind: "PRAISE" | "AWARD" | "BADGE" } | null>(null);
+  const [badge, setBadge] = useState(data.badgeTypes[0]?.key ?? "");
   const [reason, setReason] = useState("");
   const [points, setPoints] = useState("25");
 
@@ -112,12 +132,13 @@ function Manager({ data, api, refresh }: { data: ManagerData; api: Api; refresh:
                     <span className="w-5 text-right text-xs font-semibold text-slate-400">{i + 1}</span>
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-slate-900">{m.name}</p>
-                      <p className="text-xs text-slate-500">{m.balance.toLocaleString("en-GB")} points{m.streak > 1 ? ` · ${m.streak} on time in a row` : ""}</p>
+                      <p className="text-xs text-slate-500">{m.balance.toLocaleString("en-GB")} points{m.badges > 0 ? ` · ${m.badges} badge${m.badges === 1 ? "" : "s"}` : ""}{m.streak > 1 ? ` · ${m.streak} on time in a row` : ""}</p>
                     </div>
                   </div>
                   <div className="flex gap-1.5">
                     <button className={`${btn} border border-slate-200 text-slate-700 hover:bg-slate-50`} onClick={() => { setGiving({ memberId: m.id, kind: "PRAISE" }); setReason(""); }}><Heart className="h-3.5 w-3.5" />Praise</button>
-                    <button className={`${btn} border border-slate-200 text-slate-700 hover:bg-slate-50`} onClick={() => { setGiving({ memberId: m.id, kind: "AWARD" }); setReason(""); }}><Award className="h-3.5 w-3.5" />Bonus</button>
+                    <button className={`${btn} border border-slate-200 text-slate-700 hover:bg-slate-50`} onClick={() => { setGiving({ memberId: m.id, kind: "BADGE" }); setReason(""); setPoints("0"); }}><Medal className="h-3.5 w-3.5" />Badge</button>
+                    <button className={`${btn} border border-slate-200 text-slate-700 hover:bg-slate-50`} onClick={() => { setGiving({ memberId: m.id, kind: "AWARD" }); setReason(""); setPoints("25"); }}><Award className="h-3.5 w-3.5" />Bonus</button>
                   </div>
                 </li>
               ))}
@@ -131,23 +152,54 @@ function Manager({ data, api, refresh }: { data: ManagerData; api: Api; refresh:
               className={`${card} space-y-3 p-4`}
               onSubmit={(e) => {
                 e.preventDefault();
+                if (giving.kind === "BADGE") {
+                  const name = data.badgeTypes.find((b) => b.key === badge)?.name ?? "badge";
+                  void run("give", () => api("/api/embed/peak/badge", { memberId: giving.memberId, badge, note: reason, points: Number(points) || 0 }), `Gave ${givingTo.name} the ${name} badge${Number(points) > 0 ? ` and ${points} points` : ""}.`).then(() => setGiving(null));
+                  return;
+                }
                 void run("give", () => api("/api/embed/peak/award", { memberId: giving.memberId, kind: giving.kind, reason, points: giving.kind === "AWARD" ? Number(points) : undefined }), giving.kind === "PRAISE" ? `Praise sent to ${givingTo.name} (+${data.settings.praise}).` : `Gave ${givingTo.name} ${points} bonus points.`).then(() => setGiving(null));
               }}
             >
-              <p className="text-sm font-semibold">{giving.kind === "PRAISE" ? `Praise ${givingTo.name}` : `Bonus points for ${givingTo.name}`}</p>
-              <label className="block text-xs font-medium text-slate-600">{giving.kind === "PRAISE" ? "What did they do well?" : "What's it for?"}
+              <p className="text-sm font-semibold">{giving.kind === "PRAISE" ? `Praise ${givingTo.name}` : giving.kind === "BADGE" ? `Give ${givingTo.name} a badge` : `Bonus points for ${givingTo.name}`}</p>
+              {giving.kind === "BADGE" ? (
+                <fieldset className="grid grid-cols-2 gap-2">
+                  <legend className="sr-only">Badge</legend>
+                  {data.badgeTypes.map((b) => (
+                    <label key={b.key} className={`flex cursor-pointer items-start gap-2 rounded-lg border p-2 text-xs ${badge === b.key ? "border-brand-500 bg-brand-50" : "border-slate-200 hover:bg-slate-50"}`}>
+                      <input type="radio" name="badge" value={b.key} checked={badge === b.key} onChange={() => setBadge(b.key)} className="sr-only" />
+                      <BadgeIcon badge={b.key} className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" />
+                      <span><span className="block font-semibold text-slate-800">{b.name}</span><span className="text-slate-500">{b.meaning}</span></span>
+                    </label>
+                  ))}
+                </fieldset>
+              ) : null}
+              <label className="block text-xs font-medium text-slate-600">{giving.kind === "AWARD" ? "What's it for?" : "What did they do well?"}
                 <input value={reason} onChange={(e) => setReason(e.target.value)} required minLength={2} maxLength={200} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500" />
               </label>
-              {giving.kind === "AWARD" ? (
-                <label className="block text-xs font-medium text-slate-600">Points
-                  <input type="number" min={1} max={1000} value={points} onChange={(e) => setPoints(e.target.value)} className="mt-1 w-28 rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500" />
+              {giving.kind === "PRAISE" ? <p className="text-xs text-slate-500">Praise gives {data.settings.praise} points.</p> : (
+                <label className="block text-xs font-medium text-slate-600">{giving.kind === "BADGE" ? "Bonus points (optional)" : "Points"}
+                  <input type="number" min={giving.kind === "BADGE" ? 0 : 1} max={1000} value={points} onChange={(e) => setPoints(e.target.value)} className="mt-1 w-28 rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500" />
                 </label>
-              ) : <p className="text-xs text-slate-500">Praise gives {data.settings.praise} points.</p>}
+              )}
               <div className="flex gap-2">
                 <button type="submit" disabled={busy === "give"} className={`${btn} bg-ink text-white hover:bg-slate-800`}>Give</button>
                 <button type="button" onClick={() => setGiving(null)} className={`${btn} text-slate-600 hover:bg-slate-50`}>Cancel</button>
               </div>
             </form>
+          ) : null}
+
+          {data.badges.length > 0 ? (
+            <section className={card}>
+              <h2 className="flex items-center gap-2 border-b border-slate-100 px-4 py-3 text-sm font-semibold"><Medal className="h-4 w-4 text-brand-600" />Recent recognition</h2>
+              <ul className="divide-y divide-slate-100">
+                {data.badges.map((b) => (
+                  <li key={b.id} className="flex items-start gap-3 px-4 py-2.5 text-sm">
+                    <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-700"><BadgeIcon badge={b.badge} className="h-4 w-4" /></span>
+                    <div className="min-w-0"><p className="text-slate-800"><span className="font-medium">{b.member?.name}</span>: {b.name}</p><p className="truncate text-xs text-slate-500">“{b.note}” · {b.byName} · {ago(b.createdAt)}</p></div>
+                  </li>
+                ))}
+              </ul>
+            </section>
           ) : null}
 
           <section className={card}>
@@ -234,6 +286,10 @@ function Member({ data, api, refresh }: { data: MemberData; api: Api; refresh: (
         </ul>
       </section>
 
+      <BadgeShelf badges={data.badges} />
+
+      <Offers offers={data.offers} api={api} refresh={refresh} />
+
       {data.redemptions.length > 0 ? (
         <section className={card}>
           <h2 className="border-b border-slate-100 px-4 py-3 text-sm font-semibold">Your requests</h2>
@@ -262,5 +318,84 @@ function Member({ data, api, refresh }: { data: MemberData; api: Api; refresh: (
         )}
       </section>
     </div>
+  );
+}
+
+function BadgeShelf({ badges }: { badges: Badge[] }) {
+  return (
+    <section className={card}>
+      <h2 className="flex items-center gap-2 border-b border-slate-100 px-4 py-3 text-sm font-semibold"><Medal className="h-4 w-4 text-brand-600" />Your badges{badges.length > 0 ? <span className="rounded-full bg-brand-50 px-2 text-xs text-brand-700">{badges.length}</span> : null}</h2>
+      {badges.length === 0 ? (
+        <p className="p-6 text-sm text-slate-500">When your manager recognises your work, your badges appear here.</p>
+      ) : (
+        <ul className="grid gap-3 p-4 sm:grid-cols-2">
+          {badges.map((b) => (
+            <li key={b.id} className="flex gap-3 rounded-xl border border-slate-200 bg-gradient-to-br from-white to-brand-50/40 p-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-600 text-white"><BadgeIcon badge={b.badge} /></span>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-slate-900">{b.name}{b.points > 0 ? <span className="ml-1.5 text-xs font-medium text-emerald-700">+{b.points}</span> : null}</p>
+                <p className="text-sm text-slate-700">“{b.note}”</p>
+                <p className="mt-0.5 text-xs text-slate-500">{b.byName} · {ago(b.createdAt)}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function Offers({ offers, api, refresh }: { offers: Offer[]; api: Api; refresh: () => Promise<void> }) {
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
+  if (offers.length === 0) return null;
+
+  async function open(offer: Offer) {
+    setBusy(offer.id);
+    setError(null);
+    try {
+      await api(`/api/embed/peak/offers/${offer.id}`, {});
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "That didn't work");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <section className={card}>
+      <h2 className="flex items-center gap-2 border-b border-slate-100 px-4 py-3 text-sm font-semibold"><Tag className="h-4 w-4 text-brand-600" />Offers for you</h2>
+      <p className="px-4 pt-3 text-xs text-slate-500">From Aultrum&apos;s partners, for everyone on Peak. They don&apos;t use your points.</p>
+      {error ? <div className="px-4 pt-3"><Notice message={error} /></div> : null}
+      <ul className="grid gap-3 p-4 sm:grid-cols-2">
+        {offers.map((o) => (
+          <li key={o.id} className="flex flex-col gap-2 rounded-xl border border-slate-200 p-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{o.partner} · {CATEGORY[o.category] ?? o.category}</p>
+                <p className="text-sm font-semibold text-slate-900">{o.title}</p>
+              </div>
+              <span className="shrink-0 rounded-lg bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-800">{o.headline}</span>
+            </div>
+            {o.description ? <p className="text-sm text-slate-600">{o.description}</p> : null}
+            {o.expiresAt ? <p className="text-xs text-slate-500">Ends {new Date(o.expiresAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</p> : null}
+            {o.claimed ? (
+              <div className="mt-auto flex flex-wrap items-center gap-2">
+                {o.code ? (
+                  <button type="button" className={`${btn} border border-dashed border-slate-300 font-mono text-slate-800 hover:bg-slate-50`} onClick={() => { void navigator.clipboard?.writeText(o.code ?? ""); setCopied(o.id); }}>
+                    {o.code}<Copy className="h-3.5 w-3.5" />{copied === o.id ? <span className="font-sans text-xs text-emerald-700">Copied</span> : null}
+                  </button>
+                ) : null}
+                {o.url ? <a href={o.url} target="_blank" rel="noreferrer" className={`${btn} bg-ink text-white hover:bg-slate-800`}>Use offer<ExternalLink className="h-3.5 w-3.5" /></a> : null}
+              </div>
+            ) : (
+              <button type="button" className={`${btn} mt-auto self-start bg-ink text-white hover:bg-slate-800`} disabled={busy === o.id} onClick={() => open(o)}>Get offer</button>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
