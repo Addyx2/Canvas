@@ -4,7 +4,7 @@ import { signEmbedToken } from "@/lib/embed-token";
 import { findModule } from "@/lib/modules";
 import { apiError, authenticatePlatform, readJson } from "@/lib/platform-auth";
 import { authSecret } from "@/lib/secret";
-import { appUrl } from "@/lib/utils";
+import { appUrl, carerAppOrigin } from "@/lib/utils";
 import { embedTokenSchema } from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
@@ -34,7 +34,8 @@ export async function POST(request: Request) {
       mod: mod.key,
       sub: parsed.data.user.id,
       name: parsed.data.user.name,
-      origins: platform.allowedOrigins,
+      // A member's own screen may also show in the Aultrum carer app.
+      origins: role === "member" ? [...new Set([...platform.allowedOrigins, carerAppOrigin()])] : platform.allowedOrigins,
       role,
       ...(role === "member" ? { person: personId } : {}),
     },
