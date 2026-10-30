@@ -12,7 +12,10 @@
     "test": "tsx --test lib/*.test.ts",
     "check": "npm run typecheck && npm run lint && npm test",
     "db:push": "prisma db push",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "db:deploy": "node scripts/db-deploy.mjs",
+    "db:check-migrations": "node scripts/check-migrations.mjs",
+    "db:migrate": "prisma migrate dev"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

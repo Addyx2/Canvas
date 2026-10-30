@@ -25,7 +25,7 @@ them into the platforms customers already use, starting with **Pleasant**.
 ```bash
 cp .env.example .env        # set DATABASE_URL and AUTH_SECRET
 npm install
-npm run db:push
+npm run db:deploy
 npm run db:seed             # admin@canvas.demo / canvas-demo-123
 npm run dev -- -p 3200
 ```
@@ -42,3 +42,9 @@ npm run dev -- -p 3200
    Vercel shows to your DNS.
 4. Open the site and create your organisation. Sign-up stays open to anyone
    (set `ALLOW_SIGNUP=false` to make it invite-only).
+
+## Changing the database
+
+Deploys run `scripts/db-deploy.mjs`: it applies the migrations in `prisma/migrations`, then checks the live database matches `prisma/schema.prisma` and stops the deploy if it doesn't. A database from before migrations is marked as at `0_baseline` once.
+
+To change the schema: edit `prisma/schema.prisma`, run `npm run db:migrate -- --name what_changed` (creates the migration and applies it locally), and commit both. CI fails if the schema changes without a migration, or if a migration drops or rewrites data without a `-- destructive: reviewed` line in it.
