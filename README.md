@@ -43,6 +43,19 @@ npm run dev -- -p 3200
 4. Open the site and create your organisation. Sign-up stays open to anyone
    (set `ALLOW_SIGNUP=false` to make it invite-only).
 
+### Gateway numbers and billing
+
+- `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`: Aultrum's Twilio account. Gateway
+  buys each organisation a UK mobile number on it, under the account's approved
+  UK mobile regulatory bundle (found automatically). The auth token checks that
+  calls and texts really come from Twilio.
+- `TWILIO_API_KEY_SID`, `TWILIO_API_KEY_SECRET`: recommended. A Twilio API key
+  (Console → Account → API keys & tokens → Create API key, Standard); requests
+  to Twilio use it instead of the auth token.
+- Gateway spends from each organisation's Allowance in Aultrum ID (calls by the
+  minute, texts, AI replies, the number monthly). Nothing is charged until
+  Stripe is set up there.
+
 ## Changing the database
 
 Deploys run `scripts/db-deploy.mjs`: it applies the migrations in `prisma/migrations`, then checks the live database matches `prisma/schema.prisma` and stops the deploy if it doesn't. A database from before migrations is marked as at `0_baseline` once.

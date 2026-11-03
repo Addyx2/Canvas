@@ -57,13 +57,24 @@ export interface TwilioCredentials {
   phoneNumber: string;
   /** On Aultrum's account (a number Elements bought), rather than the customer's own Twilio. */
   aultrum: boolean;
+  /** Aultrum's Twilio API key, used for requests to Twilio when set (the auth token still checks incoming calls and texts). */
+  apiKeySid?: string;
+  apiKeySecret?: string;
 }
 
-/** Aultrum's own Twilio account (TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN), which buys Gateway numbers. */
-export function aultrumTwilio(): { accountSid: string; authToken: string } | null {
+/**
+ * Aultrum's own Twilio account, which buys Gateway numbers: TWILIO_ACCOUNT_SID
+ * and TWILIO_AUTH_TOKEN (the token checks that calls and texts really come
+ * from Twilio). With TWILIO_API_KEY_SID and TWILIO_API_KEY_SECRET too,
+ * requests to Twilio use that API key instead of the token.
+ */
+export function aultrumTwilio(): { accountSid: string; authToken: string; apiKeySid?: string; apiKeySecret?: string } | null {
   const accountSid = process.env.TWILIO_ACCOUNT_SID?.trim();
   const authToken = process.env.TWILIO_AUTH_TOKEN?.trim();
-  return accountSid && authToken ? { accountSid, authToken } : null;
+  const apiKeySid = process.env.TWILIO_API_KEY_SID?.trim() || undefined;
+  const apiKeySecret = process.env.TWILIO_API_KEY_SECRET?.trim() || undefined;
+  if (!accountSid || !authToken) return null;
+  return apiKeySid && apiKeySecret ? { accountSid, authToken, apiKeySid, apiKeySecret } : { accountSid, authToken };
 }
 
 export const usesOwnTwilio = (settings: GatewaySettings) => Boolean(settings.twilio.accountSid && settings.twilio.authTokenSealed && settings.twilio.phoneNumber);

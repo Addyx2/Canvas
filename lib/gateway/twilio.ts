@@ -22,6 +22,19 @@ export async function readTwilioForm(request: Request): Promise<Record<string, s
   return params;
 }
 
+/** Who signs a request to Twilio: an API key (SK...) when there is one, else the account and its auth token. */
+export interface TwilioAuth {
+  accountSid: string;
+  authToken: string;
+  apiKeySid?: string;
+  apiKeySecret?: string;
+}
+
+export function twilioAuthHeader(s: TwilioAuth): string {
+  const [user, pass] = s.apiKeySid && s.apiKeySecret ? [s.apiKeySid, s.apiKeySecret] : [s.accountSid, s.authToken];
+  return `Basic ${Buffer.from(`${user}:${pass}`).toString("base64")}`;
+}
+
 const apiBase = () => process.env.TWILIO_API_BASE ?? "https://api.twilio.com";
 
 /** Send a text through the installation's own Twilio number. */
@@ -29,7 +42,7 @@ export async function sendSms(creds: TwilioCredentials, to: string, body: string
   const res = await fetch(`${apiBase()}/2010-04-01/Accounts/${encodeURIComponent(creds.accountSid)}/Messages.json`, {
     method: "POST",
     headers: {
-      Authorization: `Basic ${Buffer.from(`${creds.accountSid}:${creds.authToken}`).toString("base64")}`,
+      Authorization: twilioAuthHeader(creds),
       "Content-Type": "application/x-www-form-urlencoded",
     },
     body: new URLSearchParams({ To: to, From: creds.phoneNumber, Body: body.slice(0, 1500) }),
@@ -55,7 +68,7 @@ export type ConnectResult = { ok: true; message: string } | { ok: false; message
  * copy webhook addresses into Twilio. Also proves the credentials work.
  */
 export async function connectNumber(creds: TwilioCredentials, urls: { voice: string; sms: string }): Promise<ConnectResult> {
-  const auth = `Basic ${Buffer.from(`${creds.accountSid}:${creds.authToken}`).toString("base64")}`;
+  const auth = twilioAuthHeader(creds);
   const base = `${apiBase()}/2010-04-01/Accounts/${encodeURIComponent(creds.accountSid)}/IncomingPhoneNumbers`;
   try {
     const list = await fetch(`${base}.json?${new URLSearchParams({ PhoneNumber: creds.phoneNumber })}`, { headers: { Authorization: auth }, signal: AbortSignal.timeout(10000) });
@@ -77,12 +90,11 @@ export async function connectNumber(creds: TwilioCredentials, urls: { voice: str
 }
 
 const NUMBERS_BASE = () => (process.env.TWILIO_NUMBERS_API_BASE ?? process.env.TWILIO_API_BASE ?? "https://numbers.twilio.com").replace(/\/+$/, "");
-const basic = (s: { accountSid: string; authToken: string }) => `Basic ${Buffer.from(`${s.accountSid}:${s.authToken}`).toString("base64")}`;
 
-async function twilioJson<T>(url: string, s: { accountSid: string; authToken: string }, form?: Record<string, string>): Promise<T> {
+async function twilioJson<T>(url: string, s: TwilioAuth, form?: Record<string, string>): Promise<T> {
   const res = await fetch(url, {
     method: form ? "POST" : "GET",
-    headers: { Authorization: basic(s), ...(form ? { "Content-Type": "application/x-www-form-urlencoded" } : {}) },
+    headers: { Authorization: twilioAuthHeader(s), ...(form ? { "Content-Type": "application/x-www-form-urlencoded" } : {}) },
     body: form ? new URLSearchParams(form) : undefined,
     signal: AbortSignal.timeout(15000),
   });
@@ -92,7 +104,7 @@ async function twilioJson<T>(url: string, s: { accountSid: string; authToken: st
 }
 
 /** The account's approved UK mobile regulatory bundle and the address in it, found through Twilio's API. */
-export async function ukMobileBundle(s: { accountSid: string; authToken: string }): Promise<{ bundleSid: string; addressSid?: string } | null> {
+export async function ukMobileBundle(s: TwilioAuth): Promise<{ bundleSid: string; addressSid?: string } | null> {
   const set = process.env.TWILIO_BUNDLE_SID?.trim();
   if (set) return { bundleSid: set, addressSid: process.env.TWILIO_ADDRESS_SID?.trim() || undefined };
   const list = await twilioJson<{ results?: { sid: string }[] }>(`${NUMBERS_BASE()}/v2/RegulatoryCompliance/Bundles?Status=twilio-approved&IsoCountry=GB&NumberType=mobile&PageSize=20`, s);
@@ -108,7 +120,7 @@ export async function ukMobileBundle(s: { accountSid: string; authToken: string 
 }
 
 /** Buys a UK mobile number for calls and texts, already pointed at Gateway. */
-export async function buyUkMobile(s: { accountSid: string; authToken: string }, opts: { friendlyName: string; voiceUrl: string; smsUrl: string; bundleSid: string; addressSid?: string }): Promise<{ sid: string; number: string }> {
+export async function buyUkMobile(s: TwilioAuth, opts: { friendlyName: string; voiceUrl: string; smsUrl: string; bundleSid: string; addressSid?: string }): Promise<{ sid: string; number: string }> {
   const account = `${apiBase()}/2010-04-01/Accounts/${encodeURIComponent(s.accountSid)}`;
   const found = await twilioJson<{ available_phone_numbers?: { phone_number: string }[] }>(`${account}/AvailablePhoneNumbers/GB/Mobile.json?SmsEnabled=true&VoiceEnabled=true&PageSize=5`, s);
   const number = found.available_phone_numbers?.[0]?.phone_number;

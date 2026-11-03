@@ -24,6 +24,7 @@ let twilio: Server;
 let refuse = false;
 const spends: { orgId: string; action: string; quantity: number; key: string }[] = [];
 const bought: Record<string, string>[] = [];
+const twilioAuth: string[] = [];
 let orgId = "";
 let installationId = "";
 const TOKEN = "aultrum-twilio-token";
@@ -44,6 +45,7 @@ before(async () => {
     res.end("{}");
   });
   twilio = createServer(async (req, res) => {
+    twilioAuth.push(req.headers.authorization ?? "");
     const form = new URLSearchParams(await read(req));
     const url = req.url ?? "";
     res.setHeader("Content-Type", "application/json");
@@ -136,4 +138,23 @@ test("with credits, a call is answered and its first minute charged", async () =
   const res = await voiceRoute(twilioPost(`/api/gateway/${installationId}/voice`, { From: "+447700900666", CallSid: "CAbill2", AccountSid: process.env.TWILIO_ACCOUNT_SID! }), params());
   assert.match(await res.text(), /<Gather/);
   assert.deepEqual(spends.map((x) => [x.action, x.key.endsWith("call:CAbill2:0")]), [["call_minute", true]]);
+});
+
+test("with a Twilio API key set, requests to Twilio use it; incoming texts are still checked with the auth token", async () => {
+  process.env.TWILIO_API_KEY_SID = "SKgatewaykey";
+  process.env.TWILIO_API_KEY_SECRET = "gateway-secret";
+  refuse = false;
+  try {
+    twilioAuth.length = 0;
+    const { sendSms } = await import("./twilio");
+    const { readGatewaySettings: read2, twilioCredentials } = await import("./settings");
+    const creds = await twilioCredentials(read2((await prisma.installation.findUniqueOrThrow({ where: { id: installationId } })).settings));
+    await sendSms(creds!, "+447700900777", "API key check");
+    assert.equal(twilioAuth.at(-1), `Basic ${Buffer.from("SKgatewaykey:gateway-secret").toString("base64")}`);
+    const res = await smsRoute(twilioPost(`/api/gateway/${installationId}/sms`, { From: "+447700900888", Body: "Hi", MessageSid: "SMkey1", AccountSid: process.env.TWILIO_ACCOUNT_SID! }), params());
+    assert.equal(res.status, 200, "the webhook is still verified with the auth token");
+  } finally {
+    delete process.env.TWILIO_API_KEY_SID;
+    delete process.env.TWILIO_API_KEY_SECRET;
+  }
 });
