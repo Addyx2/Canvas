@@ -2,6 +2,7 @@
 
 import type { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { recordAudit } from "@/lib/audit";
@@ -10,6 +11,8 @@ import { prisma } from "@/lib/db";
 import { parseAlertEmails } from "@/lib/gateway/alerts";
 import { normalisePhone } from "@/lib/gateway/directory";
 import { gatewaySettingsSchema, readGatewaySettings, twilioCredentials } from "@/lib/gateway/settings";
+import { allowanceCheckout } from "@/lib/allowance";
+import { provisionGatewayNumber } from "@/lib/gateway/number";
 import { connectNumber } from "@/lib/gateway/twilio";
 import { peakSettingsSchema } from "@/lib/peak/settings";
 import { seal } from "@/lib/seal";
@@ -65,13 +68,15 @@ export async function saveGatewaySettingsAction(_prev: FormState, formData: Form
       authTokenSealed: newToken ? await seal(newToken) : formData.get("clearToken") === "on" ? "" : current.twilio.authTokenSealed,
       phoneNumber,
     },
+    // The number Elements bought stays with the installation whatever else changes.
+    number: current.number,
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the details" };
   await prisma.installation.update({ where: { id: installation.id }, data: { settings: merged(installation.settings, "gateway", parsed.data) } });
   await recordAudit(user, { action: "gateway.settings", summary: `Updated Gateway settings for ${installation.tenantName}${newToken ? " (new Twilio token)" : ""}` });
   revalidatePath(`/installations/${installation.id}`);
   const creds = await twilioCredentials(parsed.data);
-  if (!creds) return { ok: true };
+  if (!creds || creds.aultrum) return { ok: true };
   const connected = await connectNumber(creds, { voice: appUrl(`/api/gateway/${installation.id}/voice`), sms: appUrl(`/api/gateway/${installation.id}/sms`) });
   return { ok: true, note: connected.message, noteOk: connected.ok };
 }
@@ -116,4 +121,27 @@ export async function toggleRewardAction(formData: FormData): Promise<void> {
   await prisma.peakReward.update({ where: { id: reward.id }, data: { active: !reward.active } });
   await recordAudit(user, { action: "peak.reward", summary: `${reward.active ? "Hid" : "Showed"} the Peak reward "${reward.name}"` });
   revalidatePath(`/installations/${reward.installationId}`);
+}
+
+/** Buys (or retries buying) the Gateway's own UK number on Aultrum's account. */
+export async function getGatewayNumberAction(formData: FormData): Promise<void> {
+  const user = await requireAdmin();
+  const installation = await ownedInstallation(user.organizationId, String(formData.get("id") ?? ""), "gateway");
+  if (!installation) return;
+  const r = await provisionGatewayNumber(installation.id);
+  if (r.ok) await recordAudit(user, { action: "gateway.number", summary: `Gateway number ${r.number} set up for ${installation.tenantName}` });
+  revalidatePath(`/installations/${installation.id}`);
+}
+
+/** Buys credits or a plan for the organisation's Allowance, through Stripe. */
+export async function allowanceCheckoutAction(formData: FormData): Promise<void> {
+  const user = await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const org = await prisma.organization.findUniqueOrThrow({ where: { id: user.organizationId }, select: { id: true, name: true } });
+  const pack = String(formData.get("pack") ?? "") || undefined;
+  const plan = String(formData.get("plan") ?? "") || undefined;
+  const result = await allowanceCheckout(org, { pack, plan }, appUrl(`/installations/${id}`), user.email);
+  if ("error" in result) redirect(`/installations/${id}?allowanceError=${encodeURIComponent(result.error)}`);
+  await recordAudit(user, { action: "allowance.checkout", summary: plan ? `Opened checkout for the ${plan} plan` : `Opened checkout for credits (${pack})` });
+  redirect(result.url);
 }

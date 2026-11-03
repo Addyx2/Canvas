@@ -48,3 +48,22 @@ export async function signWebhookJwt(body: string, audience: string, eventId: st
     .setExpirationTime("5m")
     .sign(key);
 }
+
+/**
+ * A two-minute token proving a request comes from Elements, for Aultrum ID's
+ * product API (private_key_jwt, checked against /.well-known/jwks.json).
+ */
+export async function clientAssertion(clientId: string, audience: string): Promise<string> {
+  const { privateJwk } = await load();
+  const key = await importJWK(privateJwk, "ES256");
+  const { randomBytes } = await import("node:crypto");
+  return new SignJWT({})
+    .setProtectedHeader({ alg: "ES256", kid: privateJwk.kid, typ: "JWT" })
+    .setIssuer(clientId)
+    .setSubject(clientId)
+    .setAudience(audience)
+    .setIssuedAt()
+    .setExpirationTime("2m")
+    .setJti(randomBytes(16).toString("base64url"))
+    .sign(key);
+}

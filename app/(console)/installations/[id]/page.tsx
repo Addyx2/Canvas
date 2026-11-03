@@ -12,6 +12,7 @@ import { formatPence, readPeakSettings } from "@/lib/peak/settings";
 import { appUrl } from "@/lib/utils";
 
 import { toggleRewardAction } from "./actions";
+import { GatewayBilling } from "./GatewayBilling";
 import { AddRewardForm, GatewaySettingsForm, PeakSettingsForm } from "./SettingsForms";
 
 export const metadata = { title: "Installation settings" };
@@ -26,9 +27,10 @@ function Copy({ label, value }: { label: string; value: string }) {
   );
 }
 
-export default async function InstallationSettingsPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function InstallationSettingsPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ allowance?: string; allowanceError?: string }> }) {
   const user = await requireUser();
   const { id } = await params;
+  const sp = await searchParams;
   const installation = await prisma.installation.findFirst({
     where: { id, organizationId: user.organizationId },
     include: { platform: { select: { name: true, builtIn: true } } },
@@ -41,6 +43,7 @@ export default async function InstallationSettingsPage({ params }: { params: Pro
     <div className="space-y-6">
       <Link href="/installations" className="text-sm font-medium text-brand-700 hover:text-brand-800">← Installations</Link>
       <PageHeader title={`${mod.name} for ${installation.tenantName}`} description={`In ${installation.platform.name}. ${mod.tagline}`} />
+      {installation.moduleKey === "gateway" ? <GatewayBilling installation={installation} organizationId={user.organizationId} isAdmin={isAdmin} paid={sp.allowance} allowanceError={sp.allowanceError} /> : null}
       {installation.moduleKey === "gateway" ? <GatewaySettings installation={installation} standalone={installation.platform.builtIn} isAdmin={isAdmin} /> : null}
       {installation.moduleKey === "peak" ? <PeakSettings installationId={installation.id} settings={installation.settings} isAdmin={isAdmin} /> : null}
     </div>
@@ -85,7 +88,7 @@ function GatewaySettings({ installation, standalone, isAdmin }: { installation: 
       </Card>
       <Card className="space-y-4 p-5">
         <h2 className="font-display text-lg font-semibold">Connect your channels</h2>
-        <p className="text-sm text-slate-600">Saving your Twilio details above connects your number automatically. If you&apos;d rather do it yourself, set these as the number&apos;s webhooks in Twilio (HTTP POST).</p>
+        <p className="text-sm text-slate-600">Gateway&apos;s own number is connected for you. If you use your own Twilio instead, saving its details above connects it automatically; or set these as the number&apos;s webhooks in Twilio (HTTP POST).</p>
         <div className="grid gap-4 md:grid-cols-2">
           <Copy label="A message comes in" value={appUrl(`/api/gateway/${installation.id}/sms`)} />
           <Copy label="A call comes in" value={appUrl(`/api/gateway/${installation.id}/voice`)} />

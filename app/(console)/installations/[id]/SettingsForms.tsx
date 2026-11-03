@@ -51,12 +51,12 @@ export function GatewaySettingsForm(props: {
             {props.standalone ? "Leave empty to email everyone on your team." : "Leave empty if your system already shows Gateway's enquiries."} At most one email per conversation every ten minutes, except emergencies.
           </span>
         </label>
-        <label className="flex items-start gap-2 text-sm text-slate-700"><input type="checkbox" name="urgentSms" defaultChecked={props.urgentSms} className="mt-0.5 h-4 w-4" /><span>Text the on-call number straight away if someone may be in danger <span className="block text-xs text-slate-500">Needs Twilio and an on-call number.</span></span></label>
+        <label className="flex items-start gap-2 text-sm text-slate-700"><input type="checkbox" name="urgentSms" defaultChecked={props.urgentSms} className="mt-0.5 h-4 w-4" /><span>Text the on-call number straight away if someone may be in danger <span className="block text-xs text-slate-500">Needs Gateway&apos;s number (or your own Twilio) and an on-call number.</span></span></label>
       </fieldset>
 
       <fieldset className="space-y-4 rounded-xl border border-slate-200 p-4">
-        <legend className="px-1 text-sm font-semibold text-slate-800">Phone and text (Twilio)</legend>
-        <p className="text-xs text-slate-500">From your Twilio account. The auth token is encrypted and never shown again. When you save, Gateway connects the number for you: calls and texts to it come straight here.</p>
+        <legend className="px-1 text-sm font-semibold text-slate-800">Use your own Twilio instead (optional)</legend>
+        <p className="text-xs text-slate-500">Only if you want Gateway on a number in your own Twilio account, billed by Twilio to you. Otherwise leave this empty: Gateway has its own number. The auth token is encrypted and never shown again; when you save, the number is connected for you.</p>
         <div className="grid gap-4 sm:grid-cols-3">
           <label className={labelClass}>Account SID<input name="accountSid" defaultValue={props.accountSid} placeholder="AC…" className={`${inputClass} mt-1`} autoComplete="off" /></label>
           <label className={labelClass}>Auth token<input name="authToken" type="password" placeholder={props.hasToken ? "Saved. Enter a new one to replace it" : ""} className={`${inputClass} mt-1`} autoComplete="new-password" /></label>
