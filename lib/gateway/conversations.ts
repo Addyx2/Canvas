@@ -1,6 +1,7 @@
 import type { BetaMessageParam } from "@anthropic-ai/sdk/resources/beta/messages/messages";
 import type { GatewayChannel, GatewayConversation, Installation, Prisma } from "@prisma/client";
 
+import { chargeAllowance, textParts } from "../allowance";
 import { prisma } from "../db";
 import { emitEvent } from "../webhooks";
 import { aiAvailable, runAgentTurn, type ToolRunner } from "./agent";
@@ -185,6 +186,17 @@ export async function receiveMessage(input: Incoming): Promise<Outcome> {
     conversation = await prisma.gatewayConversation.update({ where: { id: conversation.id }, data: { status: "WITH_AI" } });
   }
 
+  // An AI reply to a text or web chat is paid for from the Allowance (a call is paid by the minute).
+  // With no credits left the message waits for the team, who are alerted.
+  if (input.channel !== "VOICE" && aiAvailable()) {
+    const org = await prisma.organization.findUniqueOrThrow({ where: { id: input.installation.organizationId }, select: { id: true, name: true } });
+    const paid = await chargeAllowance(org, "chat_turn");
+    if (!paid.ok) {
+      await handOver(conversation, "Gateway is paused: the Allowance has run out of credits, so this needs a reply from the team.", false, text.slice(0, 800));
+      return { conversation: await prisma.gatewayConversation.findUniqueOrThrow({ where: { id: conversation.id } }), reply: null };
+    }
+  }
+
   let reply: string;
   const state: { close?: string } = {};
   if (aiAvailable()) {
@@ -229,9 +241,14 @@ export async function staffReply(installation: Installation, conversationId: str
   if (!body) throw new GatewayError("Write a reply first.");
   if (c.channel !== "WEBCHAT") {
     const creds = await twilioCredentials(readGatewaySettings(installation.settings));
-    if (!creds) throw new GatewayError("Add Twilio in the Elements console to reply by text.");
+    if (!creds) throw new GatewayError("Gateway has no number yet, so it can't reply by text. See Gateway's number in the Elements console.");
     const to = normalisePhone(c.contact);
     if (!to) throw new GatewayError("This caller's number can't receive texts.");
+    if (creds.aultrum) {
+      const org = await prisma.organization.findUniqueOrThrow({ where: { id: installation.organizationId }, select: { id: true, name: true } });
+      const paid = await chargeAllowance(org, "sms_out", textParts(body));
+      if (!paid.ok) throw new GatewayError(`${paid.message} Reply by phone or email instead.`);
+    }
     await sendSms(creds, to, body);
   }
   await addMessage(c.id, "STAFF", body, staffName);

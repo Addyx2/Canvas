@@ -102,7 +102,15 @@ export async function sendAlert(c: GatewayConversation, alert: Alert): Promise<v
     const creds = await twilioCredentials(settings);
     if (to && creds) {
       const said = (alert.details ?? alert.headline).slice(0, 200);
-      await sendSms(creds, to, `Gateway, ${serviceName}: possible emergency from ${contactLabel(c)}. "${said}" Open ${inbox}`).catch((error) => console.error("urgent text not sent", error));
+      // Never held back for credits: a possible emergency always reaches the on-call phone. It's still recorded against the Allowance.
+      const message = `Gateway, ${serviceName}: possible emergency from ${contactLabel(c)}. "${said}" Open ${inbox}`;
+      await sendSms(creds, to, message).catch((error) => console.error("urgent text not sent", error));
+      if (creds.aultrum) {
+        const { chargeAllowance, textParts } = await import("../allowance");
+        const inst = await prisma.installation.findUnique({ where: { id: c.installationId }, select: { organization: { select: { id: true, name: true } } } });
+        const org = inst?.organization;
+        if (org) await chargeAllowance(org, "sms_out", textParts(message)).catch(() => undefined);
+      }
     }
   }
 }
