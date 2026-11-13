@@ -23,6 +23,7 @@ What you do:
 - A question about the organisation: answer only from the details you are given. If the answer isn't there, take a message and say the team will get back to them.
 - A new enquiry (for example someone looking for the organisation's services, a business asking to work with them, or someone asking about jobs): find out who they are, how to reach them, and briefly what they need, then call take_enquiry. Tell them the team will be in touch. Don't quote prices, availability or start dates unless they are in the details you are given.
 - Anything for the team that isn't an enquiry, such as a message for a named person, a change to an existing arrangement, or someone saying they can't make something: take down who it's from, how to reach them and the message, then call take_message. Tell them it has been passed on. Don't confirm or agree to anything.
+- A carer you know (the person is known and is a carer) saying they can't make a shift: if it isn't clear which shift, ask the day and roughly the time, then call report_absence. Tell them the office has been told and will arrange cover. Don't ask why beyond a word or two, and never ask for medical details. If they sound unwell enough to be in danger, follow the 999 rule.
 - When the person asks for a human, is upset or complaining, or you aren't sure what to do: call hand_over and tell them someone from the team will be with them shortly.
 - When the conversation is clearly finished, call close_conversation with a one-line summary.
 
@@ -51,19 +52,30 @@ const handOver = z.object({
   urgent: z.boolean().describe("True if anyone may be in danger or it can't wait"),
 });
 const closeConversation = z.object({ summary: z.string().min(2).max(300) });
+const reportAbsence = z.object({
+  date: z.string().regex(/^(\d{4}-\d{2}-\d{2})?$/).describe("The date of the shift they can't make as YYYY-MM-DD, if clear; empty otherwise"),
+  when: z.string().min(2).max(200).describe("Which shift, in their words, e.g. 'tomorrow's 7am at Meadow View'"),
+  reason: z.string().max(200).describe("A few words on why, if they said, e.g. 'unwell'; no medical details; empty if they didn't say"),
+});
 
 export const GATEWAY_TOOLS = {
   take_enquiry: { schema: takeEnquiry, description: "Send a new enquiry to the team so they can follow it up." },
   take_message: { schema: takeMessage, description: "Pass a message to the team." },
   hand_over: { schema: handOver, description: "Ask a member of staff to take over this conversation." },
   close_conversation: { schema: closeConversation, description: "End the conversation once the person has what they need." },
+  report_absence: { schema: reportAbsence, description: "A known carer can't make a shift: tell the office so it can arrange cover. Only for a known carer." },
 } as const;
 
 export type GatewayToolName = keyof typeof GATEWAY_TOOLS;
 export type ToolRunner = <N extends GatewayToolName>(name: N, input: z.infer<(typeof GATEWAY_TOOLS)[N]["schema"]>) => Promise<string>;
 
-function toolDefinitions(): BetaToolUnion[] {
-  return (Object.keys(GATEWAY_TOOLS) as GatewayToolName[]).map((name) => {
+/** The tools for this conversation: only a known carer can report an absence. */
+export function toolNamesFor(ctx: Pick<AgentContext, "caller">): GatewayToolName[] {
+  return (Object.keys(GATEWAY_TOOLS) as GatewayToolName[]).filter((name) => name !== "report_absence" || ctx.caller?.kind === "carer");
+}
+
+function toolDefinitions(ctx: AgentContext): BetaToolUnion[] {
+  return toolNamesFor(ctx).map((name) => {
     return {
       name,
       description: GATEWAY_TOOLS[name].description,
@@ -135,7 +147,7 @@ export async function runAgentTurn(history: BetaMessageParam[], text: string, ct
         { type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } },
         { type: "text", text: contextBlock(ctx) } satisfies BetaTextBlockParam,
       ],
-      tools: toolDefinitions(),
+      tools: toolDefinitions(ctx),
       messages,
     });
     messages.push({ role: "assistant", content: message.content as BetaContentBlockParam[] });
@@ -154,7 +166,7 @@ export async function runAgentTurn(history: BetaMessageParam[], text: string, ct
     const results: BetaToolResultBlockParam[] = [];
     for (const use of uses) {
       if (use.type !== "tool_use") continue;
-      const tool = GATEWAY_TOOLS[use.name as GatewayToolName];
+      const tool = toolNamesFor(ctx).includes(use.name as GatewayToolName) ? GATEWAY_TOOLS[use.name as GatewayToolName] : undefined;
       if (!tool) {
         results.push({ type: "tool_result", tool_use_id: use.id, is_error: true, content: `Unknown tool ${use.name}` });
         continue;
