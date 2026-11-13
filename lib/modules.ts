@@ -37,6 +37,7 @@ export const MODULES: ModuleManifest[] = [
       { type: "gateway.enquiry.received", description: "A new enquiry, with who it's from, how to reach them and what they need." },
       { type: "gateway.message.left", description: "A message for the team." },
       { type: "gateway.handover.requested", description: "A conversation needs a person now." },
+      { type: "gateway.absence.reported", description: "A known carer called or texted to say they can't make a shift, with the date and which shift." },
     ],
     consumes: [
       { type: "platform.person.updated", description: "A known contact's name or phone changed, so Gateway greets them by name." },

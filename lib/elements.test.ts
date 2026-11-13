@@ -58,7 +58,7 @@ test("tool inputs are validated before they run", () => {
   assert.equal(GATEWAY_TOOLS.hand_over.schema.safeParse({ reason: "Wants a person" }).success, false);
   assert.equal(GATEWAY_TOOLS.take_message.schema.safeParse({ name: "Sam", contact: "", for_whom: "", message: "" }).success, false);
   assert.equal(GATEWAY_TOOLS.take_enquiry.schema.safeParse({ name: "Sam", contact: "", organisation: "", topic: "Home care", details: "For my dad" }).success, true);
-  assert.deepEqual(Object.keys(GATEWAY_TOOLS).sort(), ["close_conversation", "hand_over", "take_enquiry", "take_message"]);
+  assert.deepEqual(Object.keys(GATEWAY_TOOLS).sort(), ["close_conversation", "hand_over", "report_absence", "take_enquiry", "take_message"]);
 });
 
 test("settings fall back to safe defaults", () => {

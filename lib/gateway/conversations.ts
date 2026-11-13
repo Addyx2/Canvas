@@ -136,6 +136,20 @@ function toolRunner(c: GatewayConversation, state: { close?: string }): ToolRunn
         await handOver(c, i.reason, i.urgent);
         return "A member of staff has been asked to take over.";
       }
+      case "report_absence": {
+        const i = input as { date: string; when: string; reason: string };
+        if (!c.personId) return "This person isn't a known carer: take a message instead.";
+        await prisma.gatewayConversation.update({ where: { id: c.id }, data: { intent: "MESSAGE", summary: `Can't make a shift: ${i.when}`.slice(0, 300), followUp: true, followUpDoneAt: null } });
+        alertTeam(c, { kind: "message", name: c.contactName, headline: "Can't make a shift", details: [i.when, i.reason].filter(Boolean).join(" · "), reachOn: c.channel === "WEBCHAT" ? null : c.contact });
+        // The platform (e.g. Pleasant) frees the shift and starts finding cover.
+        await emitEvent(c.installationId, "gateway.absence.reported", {
+          ...who(c),
+          date: i.date || null,
+          when: i.when,
+          reason: i.reason || null,
+        });
+        return "The office has been told and will arrange cover.";
+      }
       case "close_conversation": {
         state.close = (input as { summary: string }).summary;
         return "The conversation will close after your reply.";
